@@ -5,6 +5,7 @@
 /.pnp
 .pnp.js
 install2.log
+.env
 tsconfig.tsbuildinfo
 
 # next.js
