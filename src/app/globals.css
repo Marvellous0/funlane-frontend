@@ -1,0 +1,116 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Geist:wght@100..900&display=swap');
+
+@layer base {
+  :root {
+    --brand: #1670B5;
+    --brand-dark: #0F5390;
+    --gold: #C5A059;
+    --navy: #05162E;
+    --amber: #D97706;
+    --purple: #7C3AED;
+    --green: #10B981;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    @apply font-sans text-ink bg-surface antialiased;
+    letter-spacing: -0.01em;
+  }
+
+  /* Clean, modern sans headings for the app UI. Components opt into the
+     display serif explicitly with `font-display` where a marketing tone fits. */
+  h1, h2, h3 {
+    @apply font-sans font-bold tracking-tight text-ink;
+  }
+  a { @apply text-inherit no-underline; }
+
+  /* Consistent, visible focus ring for keyboard users across the app. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand/40 ring-offset-2 ring-offset-white;
+  }
+}
+
+@layer components {
+  /* ---- Auth screens (Azure Logic) ---- */
+  .auth-wrap {
+    @apply min-h-screen flex items-center justify-center p-4 sm:p-6;
+    background:
+      radial-gradient(70% 55% at 50% 0%, #E5EEFF 0%, transparent 60%),
+      #F8F9FF;
+  }
+  /* Split layout (login / sign up) */
+  .auth-split {
+    @apply w-full max-w-5xl grid lg:grid-cols-2 rounded-2xl overflow-hidden bg-white border border-line;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+    min-height: 640px;
+  }
+  .auth-hero {
+    @apply hidden lg:flex flex-col p-12 text-white relative overflow-hidden;
+    background: linear-gradient(165deg, #1B2942 0%, #0F172A 60%, #0B1220 100%);
+  }
+  .auth-form-side {
+    @apply flex flex-col justify-center p-8 sm:p-10 lg:p-14 bg-white;
+  }
+  /* Centered card (forgot / reset / verify) */
+  .auth-panel {
+    @apply w-full max-w-md bg-white rounded-2xl border border-line p-7 sm:p-8;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+  }
+  /* Leading-icon input */
+  .auth-field {
+    @apply w-full h-12 pl-11 pr-4 bg-surface border border-line rounded-lg text-sm text-ink
+           placeholder:text-ink-3/70 focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-400/25
+           focus:bg-white transition-colors;
+  }
+  /* Azure security / NDPA banner */
+  .auth-banner {
+    @apply flex gap-3 p-3.5 rounded-lg bg-blue-soft/70 border border-blue/10 text-ink-2;
+  }
+  /* Navy primary action button */
+  .auth-btn {
+    @apply w-full h-12 inline-flex items-center justify-center gap-2 bg-ink text-white font-semibold text-sm
+           rounded-lg hover:bg-ink-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+  }
+
+  /* ---- OTP input ---- */
+  .otp-group {
+    @apply flex gap-2 sm:gap-2.5 justify-center;
+  }
+  .otp-input {
+    @apply w-11 h-14 sm:w-12 text-center text-xl font-semibold text-ink border border-line rounded-lg
+           focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-400/25
+           transition-all duration-200 bg-surface;
+  }
+
+  /* ---- Kanban board ---- */
+  .board {
+    @apply grid gap-4 items-start;
+    grid-template-columns: repeat(4, 1fr);
+  }
+  @media (max-width: 1200px) { .board { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 640px) { .board { @apply flex overflow-x-auto snap-x snap-mandatory gap-4 pb-4; }
+    .board > div { @apply flex-shrink-0 snap-center; min-width: 280px; }
+  }
+}
+
+@layer utilities {
+  .text-gradient-gold {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #C5A059, #E5C185);
+  }
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-xl border border-white/40 shadow-card;
+  }
+  .scrollbar-hide {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
