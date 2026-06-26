@@ -1,12 +1,14 @@
 import type { AuthUser, BackendRole, PublicUser, Role } from '@/interface';
 
 /**
- * The backend has three roles (CLIENT/AGENT/ADMIN) but this portal only models
- * two areas: the client portal and the agency dashboard. Admins operate the
- * agency side, so they map onto the `agent` experience.
+ * Map the backend's role enum onto the app's lowercase principal role. Each
+ * backend role has its own area: clients use the client portal, agents the
+ * agency dashboard, and admins the admin console.
  */
 export function mapRole(role: BackendRole): Role {
-  return role === 'CLIENT' ? 'client' : 'agent';
+  if (role === 'CLIENT') return 'client';
+  if (role === 'ADMIN') return 'admin';
+  return 'agent';
 }
 
 /** Project the backend user onto the app's role-normalized principal. */
@@ -21,5 +23,20 @@ export function toAuthUser(user: PublicUser): AuthUser {
 
 /** Where a freshly authenticated user should land. */
 export function homePathFor(role: Role): string {
-  return role === 'client' ? '/client/dashboard' : '/agent/board';
+  if (role === 'client') return '/client/dashboard';
+  if (role === 'admin') return '/admin';
+  return '/agent/board';
+}
+
+export function loginPathFor(role?: Role) {
+  switch (role) {
+    case 'admin':
+      return '/admin/login';
+
+    case 'agent':
+      return '/agent/login';
+
+    default:
+      return '/login';
+  }
 }

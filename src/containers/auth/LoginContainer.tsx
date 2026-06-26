@@ -145,6 +145,18 @@ export function LoginContainer() {
         </Link>
       </p>
 
+      <p className="mt-2 text-center text-xs text-ink-3">
+        Staff member? Sign in to the{' '}
+        <Link href="/agent/login" className="font-medium text-ink hover:underline">
+          Agent
+        </Link>{' '}
+        or{' '}
+        <Link href="/admin/login" className="font-medium text-ink hover:underline">
+          Admin
+        </Link>{' '}
+        portal.
+      </p>
+
       <div className="mt-4 flex items-center justify-center gap-3 text-[11px] text-ink-3">
         <span>Privacy Policy</span>
         <span aria-hidden="true">·</span>

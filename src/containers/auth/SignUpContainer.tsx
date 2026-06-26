@@ -104,7 +104,7 @@ export function SignUpContainer() {
       <p className="text-ink-3 text-sm mb-6">Join Funlane Travels &amp; Logistics.</p>
 
       <form onSubmit={onSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="firstName" className={labelClass}>First name</label>
             <div className="relative">
@@ -121,7 +121,7 @@ export function SignUpContainer() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="email" className={labelClass}>Email address</label>
             <div className="relative">

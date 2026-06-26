@@ -1,10 +1,19 @@
 import type {
+  AdminLoginResponse,
+  AgentLoginResponse,
+  BootstrapAdminPayload,
+  BootstrapAdminResponse,
+  CreateAdminPayload,
+  CreateAdminResponse,
+  CreateAgentPayload,
+  CreateAgentResponse,
   LoginPayload,
   LoginResponse,
   MessageResponse,
   PublicUser,
   RegisterPayload,
   RegisterResponse,
+  StaffLoginPayload,
 } from '@/interface';
 import { apiFetch } from './client';
 
@@ -16,6 +25,31 @@ export function register(payload: RegisterPayload): Promise<RegisterResponse> {
 /** POST /auth/login — exchange credentials for the user + JWT. */
 export function login(payload: LoginPayload): Promise<LoginResponse> {
   return apiFetch<LoginResponse>('/auth/login', { method: 'POST', body: payload });
+}
+
+/** POST /admin/auth/login — staff login; 403s accounts that aren't admins. */
+export function adminLogin(payload: StaffLoginPayload): Promise<AdminLoginResponse> {
+  return apiFetch<AdminLoginResponse>('/admin/auth/login', { method: 'POST', body: payload });
+}
+
+/** POST /agent/auth/login — staff login; 403s accounts that aren't agents. */
+export function agentLogin(payload: StaffLoginPayload): Promise<AgentLoginResponse> {
+  return apiFetch<AgentLoginResponse>('/agent/auth/login', { method: 'POST', body: payload });
+}
+
+/** POST /admin/auth/bootstrap — create the first admin account (public, one-time). */
+export function bootstrapAdmin(payload: BootstrapAdminPayload): Promise<BootstrapAdminResponse> {
+  return apiFetch<BootstrapAdminResponse>('/admin/auth/bootstrap', { method: 'POST', body: payload });
+}
+
+/** POST /admin/admins — create another admin (requires an admin bearer token). */
+export function createAdmin(payload: CreateAdminPayload): Promise<CreateAdminResponse> {
+  return apiFetch<CreateAdminResponse>('/admin/admins', { method: 'POST', body: payload, auth: true });
+}
+
+/** POST /admin/agents — onboard and invite a new agent (requires an admin token). */
+export function createAgent(payload: CreateAgentPayload): Promise<CreateAgentResponse> {
+  return apiFetch<CreateAgentResponse>('/admin/agents', { method: 'POST', body: payload, auth: true });
 }
 
 /** POST /auth/verify-email — activate an account with the emailed token. */

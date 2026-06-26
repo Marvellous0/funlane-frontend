@@ -5,14 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/api';
-import { FunlaneLogo, IconLock, IconArrowLeft, IconArrowRight, IconEye, IconEyeOff } from '@/components/ui';
+import { IconLock, IconArrowLeft, IconArrowRight, IconEye, IconEyeOff } from '@/components/ui';
 import { Shield, MapPin, Check } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/AuthLayout';
-
-const HERO_FEATURES = [
-  { icon: Shield, title: 'NDPA Compliant', desc: 'Encrypted, enterprise-grade security.' },
-  { icon: MapPin, title: 'Real-time Tracking', desc: 'Follow every request end to end.' },
-];
+import { toast } from 'react-toastify';
 
 export function ResetPasswordContainer() {
   const router = useRouter();
@@ -54,10 +50,13 @@ export function ResetPasswordContainer() {
     setError('');
     setLoading(true);
     try {
-      await resetPassword(token, password);
+      const response = await resetPassword(token, password);
+      setTimeout(() => {
+        toast.success(response.message);
+      }, 1000);
       setDone(true);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not reset your password. Please try again.');
+      toast.error(err instanceof ApiError ? err.message : 'Could not reset your password. Please try again.');
     } finally {
       setLoading(false);
     }

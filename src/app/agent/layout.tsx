@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import type { NavSection } from '@/components/layout/navTypes';
 import { usePortalStore } from '@/store/usePortalStore';
@@ -10,8 +11,15 @@ import { agentStats } from '@/services/request.service';
 import { FolderKanban, Ticket, ClipboardList, ShieldCheck, Users } from 'lucide-react';
 
 export default function AgentLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const data = usePortalStore(useShallow((s) => ({ clients: s.clients, agents: s.agents, requests: s.requests, ledger: s.ledger, refSeq: s.refSeq })));
   const stats = agentStats(data);
+
+  // The agent login is a public, full-page auth screen — it must not be wrapped
+  // in the authenticated dashboard shell (sidebar/nav).
+  if (pathname === '/agent/login') {
+    return <>{children}</>;
+  }
 
   const sections: NavSection[] = [
     {

@@ -38,7 +38,11 @@ export function Topbar({ onToggleMenu, menuOpen = false }: TopbarProps) {
         <div className="hidden md:flex flex-col items-end text-right mr-1">
           <div className="font-semibold text-[13px] text-ink leading-tight">{user?.name}</div>
           <div className="text-[11px] text-ink-3">
-            {user?.role === 'client' ? `Client${client?.type ? ` · ${client.type}` : ''}` : 'Agency Agent'}
+            {user?.role === 'client'
+              ? `Client${client?.type ? ` · ${client.type}` : ''}`
+              : user?.role === 'admin'
+                ? 'Administrator'
+                : 'Agency Agent'}
           </div>
         </div>
 

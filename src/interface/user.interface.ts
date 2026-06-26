@@ -1,4 +1,4 @@
-export type Role = 'client' | 'agent';
+export type Role = 'client' | 'agent' | 'admin';
 
 export type ClientType = 'Corporate' | 'Retail';
 
