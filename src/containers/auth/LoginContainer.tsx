@@ -116,7 +116,7 @@ export function LoginContainer() {
               onChange={(e) => setRemember(e.target.checked)}
               className="w-4 h-4 rounded border-line text-sky-500 focus:ring-sky-400"
             />
-            Remember my email on this device
+            Remember Me
           </label>
         </div>
 
