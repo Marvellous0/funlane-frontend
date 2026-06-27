@@ -11,8 +11,21 @@ import { IconUser, IconMail, IconPhone, IconLock, IconEye, IconEyeOff, IconArrow
 import { Shield, MapPin, AlertTriangle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { AuthLayout } from '@/components/layout/AuthLayout';
+import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
+import { signupSchema } from '@/lib/validation/schemas';
 
 const labelClass = 'block text-sm font-medium text-ink mb-1.5';
+const errorClass = 'mt-1.5 text-xs text-red-dark';
+
+type SignUpFields = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirm: string;
+  ndpaConsent: boolean;
+};
 
 
 const HERO_FEATURES = [
@@ -36,23 +49,26 @@ export function SignUpContainer() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [errors, setErrors] = useState<FieldErrors<SignUpFields>>({});
 
   const strength = usePasswordStrength(formData.password);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const { errors: invalid } = await validateSchema(signupSchema, {
+      ...formData,
+      confirm,
+      ndpaConsent,
+    });
+    if (invalid) {
+      setErrors(invalid);
+      return;
+    }
     if (strength.score < 2) {
-      setError('Password does not meet complexity requirements (8+ mixed characters).');
+      setErrors({ password: 'Password does not meet complexity requirements (8+ mixed characters).' });
       return;
     }
-    if (formData.password !== confirm) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (!ndpaConsent) {
-      setError('You must accept the Privacy Policy to continue.');
-      return;
-    }
+    setErrors({});
     setLoading(true);
     setError('');
 
@@ -109,15 +125,17 @@ export function SignUpContainer() {
             <label htmlFor="firstName" className={labelClass}>First name</label>
             <div className="relative">
               <IconUser className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="firstName" type="text" value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="John" required className="auth-field" />
+              <input id="firstName" type="text" value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="John" className="auth-field" />
             </div>
+            {errors.firstName && <p className={errorClass}>{errors.firstName}</p>}
           </div>
           <div>
             <label htmlFor="lastName" className={labelClass}>Last name</label>
             <div className="relative">
               <IconUser className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="lastName" type="text" value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="Doe" required className="auth-field" />
+              <input id="lastName" type="text" value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="Doe" className="auth-field" />
             </div>
+            {errors.lastName && <p className={errorClass}>{errors.lastName}</p>}
           </div>
         </div>
 
@@ -126,15 +144,17 @@ export function SignUpContainer() {
             <label htmlFor="email" className={labelClass}>Email address</label>
             <div className="relative">
               <IconMail className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="email" type="email" value={formData.email} onChange={(e) => updateField('email', e.target.value)} placeholder="name@company.com" required className="auth-field" />
+              <input id="email" type="email" value={formData.email} onChange={(e) => updateField('email', e.target.value)} placeholder="name@company.com" className="auth-field" />
             </div>
+            {errors.email && <p className={errorClass}>{errors.email}</p>}
           </div>
           <div>
             <label htmlFor="phone" className={labelClass}>Phone number</label>
             <div className="relative">
               <IconPhone className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="phone" type="tel" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="+1 (555) 000-0000" required className="auth-field" />
+              <input id="phone" type="tel" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="+1 (555) 000-0000" className="auth-field" />
             </div>
+            {errors.phone && <p className={errorClass}>{errors.phone}</p>}
           </div>
         </div>
 
@@ -149,7 +169,7 @@ export function SignUpContainer() {
               value={formData.password}
               onChange={(e) => updateField('password', e.target.value)}
               placeholder="••••••••"
-              required
+              aria-invalid={Boolean(errors.password)}
               className="auth-field pr-11"
             />
             <button
@@ -167,6 +187,7 @@ export function SignUpContainer() {
               <StrengthChip active={strength.met.mixed && strength.met.special} label="Mixed case / symbols" />
             </div>
           )}
+          {errors.password && <p className={errorClass}>{errors.password}</p>}
         </div>
 
         <div>
@@ -179,10 +200,11 @@ export function SignUpContainer() {
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
-              required
+              aria-invalid={Boolean(errors.confirm)}
               className="auth-field"
             />
           </div>
+          {errors.confirm && <p className={errorClass}>{errors.confirm}</p>}
         </div>
 
         <div className="bg-surface rounded-lg p-3.5 space-y-3 border border-line">
@@ -200,6 +222,7 @@ export function SignUpContainer() {
               NDPA-compliant data processing.
             </label>
           </div>
+          {errors.ndpaConsent && <p className={errorClass}>{errors.ndpaConsent}</p>}
         </div>
 
         {error && (

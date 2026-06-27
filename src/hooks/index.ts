@@ -1,5 +1,6 @@
 export * from './useAuth';
 export * from './useToast';
-export * from './useRequests';
+export * from './useRequestsLive';
 export * from './useWallet';
+export * from './useUsers';
 export * from './useHydration';

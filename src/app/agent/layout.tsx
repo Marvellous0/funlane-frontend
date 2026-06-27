@@ -4,16 +4,29 @@ import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import type { NavSection } from '@/components/layout/navTypes';
-import { usePortalStore } from '@/store/usePortalStore';
-import { useShallow } from 'zustand/react/shallow';
-import { agentStats } from '@/services/request.service';
 
 import { FolderKanban, Ticket, ClipboardList, ShieldCheck, Users } from 'lucide-react';
 
+const SECTIONS: NavSection[] = [
+  {
+    title: 'Agency',
+    items: [
+      { label: 'Request Queue', icon: FolderKanban, href: '/agent/board' },
+      { label: 'Ready to Issue', icon: Ticket, href: '/agent/issue' },
+      { label: 'All Requests', icon: ClipboardList, href: '/agent/list' },
+    ],
+  },
+  {
+    title: 'Governance',
+    items: [
+      { label: 'Security Audit', icon: ShieldCheck, href: '/agent/audit' },
+      { label: 'Clients & Wallets', icon: Users, href: '/agent/clients' },
+    ],
+  },
+];
+
 export default function AgentLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const data = usePortalStore(useShallow((s) => ({ clients: s.clients, agents: s.agents, requests: s.requests, ledger: s.ledger, refSeq: s.refSeq })));
-  const stats = agentStats(data);
 
   // The agent login is a public, full-page auth screen — it must not be wrapped
   // in the authenticated dashboard shell (sidebar/nav).
@@ -21,26 +34,8 @@ export default function AgentLayout({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  const sections: NavSection[] = [
-    {
-      title: 'Agency',
-      items: [
-        { label: 'Request Queue', icon: FolderKanban, href: '/agent/board', badge: stats.newRequests || undefined },
-        { label: 'Ready to Issue', icon: Ticket, href: '/agent/issue', badge: stats.readyToIssue || undefined },
-        { label: 'All Requests', icon: ClipboardList, href: '/agent/list', badge: stats.total },
-      ],
-    },
-    {
-      title: 'Governance',
-      items: [
-        { label: 'Security Audit', icon: ShieldCheck, href: '/agent/audit' },
-        { label: 'Clients & Wallets', icon: Users, href: '/agent/clients' },
-      ],
-    },
-  ];
-
   return (
-    <DashboardShell role="agent" sections={sections}>
+    <DashboardShell role="agent" sections={SECTIONS}>
       {children}
     </DashboardShell>
   );

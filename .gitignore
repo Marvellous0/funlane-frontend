@@ -3,6 +3,7 @@
 /legacy
 /.claude
 /.pnp
+/scripts
 .pnp.js
 install2.log
 .env

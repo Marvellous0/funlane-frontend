@@ -9,6 +9,8 @@ import { IconMail, IconArrowLeft, IconArrowRight, IconShield } from '@/component
 import { AlertTriangle, MailCheck } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { toast } from 'react-toastify';
+import { validateSchema } from '@/lib/validation/validate';
+import { forgotPasswordSchema } from '@/lib/validation/schemas';
 
 export function ForgotPasswordContainer() {
   const router = useRouter();
@@ -20,6 +22,11 @@ export function ForgotPasswordContainer() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const { errors: invalid } = await validateSchema(forgotPasswordSchema, { email });
+    if (invalid) {
+      setError(invalid.email ?? 'Enter a valid email address.');
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -78,7 +85,6 @@ export function ForgotPasswordContainer() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="e.g. alex@logistics.com"
-                    required
                     className="auth-field"
                   />
                 </div>

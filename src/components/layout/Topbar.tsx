@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-import { usePortalStore } from '@/store/usePortalStore';
 import { FunlaneLogo, FunlaneMark } from '@/components/ui/Logo';
 
 interface TopbarProps {
@@ -11,8 +10,6 @@ interface TopbarProps {
 
 export function Topbar({ onToggleMenu, menuOpen = false }: TopbarProps) {
   const { user, signOut } = useAuth();
-  const reset = usePortalStore((s) => s.reset);
-  const client = usePortalStore((s) => s.clients.find((c) => c.id === user?.id));
 
   return (
     <header className="h-16 bg-white border-b border-line flex items-center justify-between px-4 sm:px-6 sticky top-0 z-50">
@@ -38,20 +35,9 @@ export function Topbar({ onToggleMenu, menuOpen = false }: TopbarProps) {
         <div className="hidden md:flex flex-col items-end text-right mr-1">
           <div className="font-semibold text-[13px] text-ink leading-tight">{user?.name}</div>
           <div className="text-[11px] text-ink-3">
-            {user?.role === 'client'
-              ? `Client${client?.type ? ` · ${client.type}` : ''}`
-              : user?.role === 'admin'
-                ? 'Administrator'
-                : 'Agency Agent'}
+            {user?.role === 'client' ? 'Client' : user?.role === 'admin' ? 'Administrator' : 'Agency Agent'}
           </div>
         </div>
-
-        <button
-          onClick={() => reset()}
-          className="hidden sm:flex h-9 px-3.5 items-center bg-surface hover:bg-line text-ink-2 font-medium text-xs rounded-lg transition-colors"
-        >
-          Reset demo
-        </button>
 
         <button
           onClick={signOut}

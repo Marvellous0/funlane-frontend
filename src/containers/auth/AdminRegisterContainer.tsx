@@ -9,7 +9,18 @@ import { useHydration } from '@/hooks/useHydration';
 import { homePathFor } from '@/services/auth.service';
 import { StaffAuthLayout } from '@/components/layout/StaffAuthLayout';
 import { IconUser, IconMail, IconPhone, IconLock, IconEye, IconEyeOff, IconShield } from '@/components/ui/icons';
-import { toast } from 'react-toastify';
+import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
+import { adminRegisterSchema } from '@/lib/validation/schemas';
+
+const errorClass = 'mt-1.5 text-xs text-red-dark';
+type AdminRegisterFields = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+  confirm: string;
+};
 
 export function AdminRegisterContainer() {
   const { registerAdmin, loading } = useAuth();
@@ -24,6 +35,7 @@ export function AdminRegisterContainer() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors<AdminRegisterFields>>({});
 
   useEffect(() => {
     if (hydrated && user) router.replace(homePathFor(user.role));
@@ -31,14 +43,19 @@ export function AdminRegisterContainer() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (password.length < 8) {
-      toast.error('Password must be at least 8 characters.');
+    const { errors: invalid } = await validateSchema(adminRegisterSchema, {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      confirm,
+    });
+    if (invalid) {
+      setErrors(invalid);
       return;
     }
-    if (password !== confirm) {
-      toast.error('Passwords do not match.');
-      return;
-    }
+    setErrors({});
     await registerAdmin({
       name: `${firstName} ${lastName}`.trim(),
       email,
@@ -62,15 +79,17 @@ export function AdminRegisterContainer() {
             <label htmlFor="admin-first" className="block text-sm font-medium text-ink mb-1.5">First name</label>
             <div className="relative">
               <IconUser className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="admin-first" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ada" required className="auth-field" />
+              <input id="admin-first" type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Ada" className="auth-field" />
             </div>
+            {errors.firstName && <p className={errorClass}>{errors.firstName}</p>}
           </div>
           <div>
             <label htmlFor="admin-last" className="block text-sm font-medium text-ink mb-1.5">Last name</label>
             <div className="relative">
               <IconUser className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="admin-last" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Obi" required className="auth-field" />
+              <input id="admin-last" type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Obi" className="auth-field" />
             </div>
+            {errors.lastName && <p className={errorClass}>{errors.lastName}</p>}
           </div>
         </div>
 
@@ -78,16 +97,18 @@ export function AdminRegisterContainer() {
           <label htmlFor="admin-email" className="block text-sm font-medium text-ink mb-1.5">Email address</label>
           <div className="relative">
             <IconMail className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input id="admin-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@funlane.com" required className="auth-field" />
+            <input id="admin-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@funlane.com" className="auth-field" />
           </div>
+          {errors.email && <p className={errorClass}>{errors.email}</p>}
         </div>
 
         <div>
           <label htmlFor="admin-phone" className="block text-sm font-medium text-ink mb-1.5">Phone number</label>
           <div className="relative">
             <IconPhone className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input id="admin-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+234 800 000 0000" required className="auth-field" />
+            <input id="admin-phone" type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+234 800 000 0000" className="auth-field" />
           </div>
+          {errors.phone && <p className={errorClass}>{errors.phone}</p>}
         </div>
 
         <div>
@@ -101,7 +122,7 @@ export function AdminRegisterContainer() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
-              required
+              aria-invalid={Boolean(errors.password)}
               className="auth-field pr-11"
             />
             <button
@@ -113,14 +134,16 @@ export function AdminRegisterContainer() {
               {showPw ? <IconEyeOff className="w-5 h-5" /> : <IconEye className="w-5 h-5" />}
             </button>
           </div>
+          {errors.password && <p className={errorClass}>{errors.password}</p>}
         </div>
 
         <div>
           <label htmlFor="admin-confirm" className="block text-sm font-medium text-ink mb-1.5">Confirm password</label>
           <div className="relative">
             <IconLock className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input id="admin-confirm" type={showPw ? 'text' : 'password'} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" required className="auth-field" />
+            <input id="admin-confirm" type={showPw ? 'text' : 'password'} autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" aria-invalid={Boolean(errors.confirm)} className="auth-field" />
           </div>
+          {errors.confirm && <p className={errorClass}>{errors.confirm}</p>}
         </div>
 
         <div className="auth-banner">

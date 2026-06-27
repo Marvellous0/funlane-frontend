@@ -9,6 +9,8 @@ import { IconLock, IconArrowLeft, IconArrowRight, IconEye, IconEyeOff } from '@/
 import { Shield, MapPin, Check } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { toast } from 'react-toastify';
+import { validateSchema } from '@/lib/validation/validate';
+import { resetPasswordSchema } from '@/lib/validation/schemas';
 
 export function ResetPasswordContainer() {
   const router = useRouter();
@@ -39,12 +41,9 @@ export function ResetPasswordContainer() {
       setError('This reset link is invalid or incomplete. Please request a new one.');
       return;
     }
-    if (password !== confirm) {
-      setError('Passwords do not match');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters');
+    const { errors: invalid } = await validateSchema(resetPasswordSchema, { password, confirm });
+    if (invalid) {
+      setError(invalid.password ?? invalid.confirm ?? 'Please check your password.');
       return;
     }
     setError('');
@@ -100,7 +99,6 @@ export function ResetPasswordContainer() {
                         setError('');
                       }}
                       placeholder="Enter new password"
-                      required
                       className="auth-field pr-11"
                     />
                     <button
@@ -135,7 +133,6 @@ export function ResetPasswordContainer() {
                         setError('');
                       }}
                       placeholder="Confirm new password"
-                      required
                       className="auth-field"
                     />
                   </div>

@@ -47,11 +47,23 @@ export class ApiError extends Error {
 
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  /** JSON-serializable request body. */
+  /** JSON-serializable request body, or a `FormData` for multipart uploads. */
   body?: unknown;
   /** Attach the stored JWT as a bearer token. Default: false. */
   auth?: boolean;
+  /** Query parameters; `undefined`/`null` entries are skipped. */
+  query?: Record<string, string | number | boolean | undefined | null>;
   signal?: AbortSignal;
+}
+
+function buildQuery(query?: RequestOptions['query']): string {
+  if (!query) return '';
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value !== undefined && value !== null && value !== '') params.set(key, String(value));
+  }
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
 }
 
 function parseJson(text: string): unknown {
@@ -68,10 +80,12 @@ function parseJson(text: string): unknown {
  * Throws `ApiError` on any non-2xx response or transport failure.
  */
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = 'GET', body, auth = false, signal } = options;
+  const { method = 'GET', body, auth = false, query, signal } = options;
+  const isMultipart = typeof FormData !== 'undefined' && body instanceof FormData;
 
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  // Let the browser set the multipart boundary; only set JSON for plain bodies.
+  if (body !== undefined && !isMultipart) headers['Content-Type'] = 'application/json';
   if (auth) {
     const token = getToken();
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -79,10 +93,10 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, {
+    res = await fetch(`${API_BASE_URL}${path}${buildQuery(query)}`, {
       method,
       headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: body === undefined ? undefined : isMultipart ? (body as FormData) : JSON.stringify(body),
       signal,
     });
   } catch {

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { NavSection } from './navTypes';
+import { bestMatchHref } from './navTypes';
 
 interface SidebarProps {
   sections: NavSection[];
@@ -12,6 +13,7 @@ interface SidebarProps {
 
 export function Sidebar({ sections, isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const activeHref = bestMatchHref(sections, pathname);
 
   return (
     <>
@@ -26,7 +28,7 @@ export function Sidebar({ sections, isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:sticky top-16 left-0 h-[calc(100vh-64px)] w-64 bg-white border-r border-line z-[70] transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed lg:static top-16 left-0 h-[calc(100vh-64px)] lg:h-full w-64 shrink-0 bg-white border-r border-line z-[70] lg:z-auto transition-transform duration-300 lg:translate-x-0 ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -38,7 +40,7 @@ export function Sidebar({ sections, isOpen, onClose }: SidebarProps) {
               </h2>
               <ul className="space-y-0.5">
                     {section.items.map((item) => {
-                      const active = pathname === item.href || pathname.startsWith(item.href + '/');
+                      const active = item.href === activeHref;
                       const Icon = item.icon;
                       return (
                         <li key={item.href}>

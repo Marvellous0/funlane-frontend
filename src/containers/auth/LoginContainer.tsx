@@ -11,6 +11,9 @@ import { FunlaneLogo } from '@/components/ui/Logo';
 import { IconMail, IconLock, IconEye, IconEyeOff, IconShield } from '@/components/ui/icons';
 import { Shield, MapPin, AlertTriangle } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/AuthLayout';
+import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
+import { loginSchema } from '@/lib/validation/schemas';
+import { getRememberedEmail, rememberEmail, forgetEmail } from '@/lib/rememberMe';
 
 
 export function LoginContainer() {
@@ -19,9 +22,11 @@ export function LoginContainer() {
   const router = useRouter();
 
   const [role] = useState<Role>('client');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(() => getRememberedEmail());
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const [remember, setRemember] = useState(() => Boolean(getRememberedEmail()));
+  const [errors, setErrors] = useState<FieldErrors<{ email: string; password: string }>>({});
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,6 +35,14 @@ export function LoginContainer() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const { errors: invalid } = await validateSchema(loginSchema, { email, password });
+    if (invalid) {
+      setErrors(invalid);
+      return;
+    }
+    setErrors({});
+    if (remember) rememberEmail(email.trim());
+    else forgetEmail();
     await signIn({ email, password, role });
   }
 
@@ -58,10 +71,11 @@ export function LoginContainer() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@company.com"
-              required
+              aria-invalid={Boolean(errors.email)}
               className="auth-field"
             />
           </div>
+          {errors.email && <p className="mt-1.5 text-xs text-red-dark">{errors.email}</p>}
         </div>
 
         <div>
@@ -81,7 +95,7 @@ export function LoginContainer() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              required
+              aria-invalid={Boolean(errors.password)}
               className="auth-field pr-11"
             />
             <button
@@ -93,6 +107,17 @@ export function LoginContainer() {
               {showPw ? <IconEyeOff className="w-5 h-5" /> : <IconEye className="w-5 h-5" />}
             </button>
           </div>
+          {errors.password && <p className="mt-1.5 text-xs text-red-dark">{errors.password}</p>}
+
+          <label className="mt-3 flex items-center gap-2 text-sm text-ink-2 select-none cursor-pointer">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(e) => setRemember(e.target.checked)}
+              className="w-4 h-4 rounded border-line text-sky-500 focus:ring-sky-400"
+            />
+            Remember my email on this device
+          </label>
         </div>
 
         <div className="auth-banner">

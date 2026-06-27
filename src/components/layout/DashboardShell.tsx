@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
 import type { NavSection } from './navTypes';
 import type { Role } from '@/interface';
 import { Topbar } from './Topbar';
@@ -22,9 +23,27 @@ interface DashboardShellProps {
 export function DashboardShell({ role, sections, children }: DashboardShellProps) {
   const hydrated = useHydration();
   const user = useAuthStore((s) => s.user);
+  const logout = useAuthStore((s) => s.logout);
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (!hydrated || !user || user.role !== role) {
+  const authorized = Boolean(user) && user?.role === role;
+
+  // Once hydration settles, never sit on the loading screen forever. If there's
+  // no signed-in user (e.g. a stale auth cookie slipped past middleware but the
+  // session is gone), clear the stale auth so middleware can't bounce us back,
+  // then go to login. A signed-in user on the wrong area goes to their own home.
+  useEffect(() => {
+    if (!hydrated || authorized) return;
+    if (!user) {
+      logout();
+      router.replace('/login');
+    } else {
+      router.replace(homePathFor(user.role));
+    }
+  }, [hydrated, authorized, user, logout, router]);
+
+  if (!hydrated || !authorized) {
     return (
       <div className="grid place-items-center min-h-screen bg-surface text-ink-3">
         <div className="flex flex-col items-center gap-4">
@@ -36,20 +55,22 @@ export function DashboardShell({ role, sections, children }: DashboardShellProps
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface overflow-x-hidden">
+    <div className="h-screen flex flex-col bg-surface overflow-hidden">
       <Topbar menuOpen={mobileMenuOpen} onToggleMenu={() => setMobileMenuOpen(!mobileMenuOpen)} />
-      
-      <div className="flex flex-1 relative overflow-hidden">
+
+      {/* Fixed shell: topbar + sidebar stay put, only the main column scrolls.
+          `min-h-0` lets the flex child establish its own scroll area. */}
+      <div className="flex flex-1 min-h-0 relative">
         {/* Desktop Sidebar + Mobile Drawer */}
-        <Sidebar 
-          sections={sections} 
-          isOpen={mobileMenuOpen} 
-          onClose={() => setMobileMenuOpen(false)} 
+        <Sidebar
+          sections={sections}
+          isOpen={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
         />
-        
-        {/* Main View */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 max-w-7xl mx-auto w-full animate-fade-in relative z-0">
-          {children}
+
+        {/* Main View — the only scrollable region */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 w-full animate-fade-in">
+          <div className="max-w-7xl mx-auto w-full">{children}</div>
         </main>
       </div>
 

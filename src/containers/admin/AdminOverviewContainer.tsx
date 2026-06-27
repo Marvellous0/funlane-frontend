@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Briefcase, ShieldPlus, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { PageHeader } from '@/components/ui';
 
 export function AdminOverviewContainer() {
   const user = useAuthStore((s) => s.user);
@@ -10,14 +11,12 @@ export function AdminOverviewContainer() {
 
   return (
     <div className="space-y-6">
-      <header>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-ink-2 mb-3">
-          <ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" />
-          Admin Console
-        </div>
-        <h1 className="text-2xl font-bold text-ink">Welcome back, {firstName}.</h1>
-        <p className="text-ink-3 text-sm mt-1">Manage your team — onboard agents and grant administrator access.</p>
-      </header>
+      <PageHeader
+        eyebrow="Admin Console"
+        eyebrowIcon={ShieldCheck}
+        title={`Welcome back, ${firstName}.`}
+        subtitle="Manage your team — onboard agents and grant administrator access."
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ActionCard

@@ -1,6 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 interface ModalProps {
@@ -13,9 +14,32 @@ interface ModalProps {
 }
 
 export function Modal({ open, title, onClose, children, footer, size = '' }: ModalProps) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  return (
+  // Lock background scroll while the dialog is open and restore on close.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  // Close on Escape.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  if (!open || !mounted) return null;
+
+  // Portal to <body> so the overlay escapes any ancestor stacking context
+  // (e.g. the dashboard `<main>`) and reliably covers the entire viewport.
+  return createPortal(
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       role="dialog"
@@ -49,6 +73,7 @@ export function Modal({ open, title, onClose, children, footer, size = '' }: Mod
         {/* Footer */}
         {footer ? <div className="px-6 py-4 bg-surface border-t border-line">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
