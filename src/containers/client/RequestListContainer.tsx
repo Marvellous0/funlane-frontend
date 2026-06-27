@@ -7,13 +7,19 @@ import { EmptyState, Loader, PageHeader, Pagination } from '@/components/ui';
 import { CheckCircle2, ClipboardList, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface RequestListContainerProps {
-  /** 'review' focuses the list on requests awaiting the client's decision. */
   mode?: 'all' | 'review';
 }
 
 export function RequestListContainer({ mode = 'all' }: RequestListContainerProps) {
   const { items, pagination, loading, error, params, setParams, refresh } = useRequestList('mine');
   const reqs = mode === 'review' ? items.filter((r) => r.status === 'OPTIONS_SENT') : items;
+  function changeLimit(limit: number) {
+    setParams({
+      ...params,
+      page: 1,
+      limit,
+    });
+  }
 
   const heading = mode === 'review' ? 'Review options' : 'My requests';
   const subtitle =
@@ -64,6 +70,8 @@ export function RequestListContainer({ mode = 'all' }: RequestListContainerProps
           totalPages={pagination.totalPages}
           total={pagination.total}
           unit="request"
+          limit={params.limit ?? pagination.limit}
+          onLimitChange={changeLimit}
           onPageChange={(p) => setParams({ ...params, page: p })}
         />
       )}

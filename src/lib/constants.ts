@@ -1,4 +1,5 @@
 import type { RequestStatus, BudgetTierKey } from '@/interface';
+import { Wallet, Lock, MapPin, Headphones, ShieldCheck, Ticket, PlaneTakeoff, Sparkles } from 'lucide-react';
 
 /** localStorage key for the persisted portal dataset. */
 export const STORE_KEY = 'funlane_portal_v1';
@@ -70,4 +71,46 @@ export const BOARD_COLUMNS: BoardColumn[] = [
   { status: 'quoted', title: 'Quoted — Awaiting Client', color: '#7C3AED' },
   { status: 'approved', title: 'Approved — Ready to Issue', color: '#10B981' },
   { status: 'issued', title: 'Completed', color: '#0369A1' },
+];
+
+export const CITIES = ['Lagos', 'Abuja', 'Port Harcourt', 'Kano', 'London', 'Dubai', 'Accra', 'Johannesburg'];
+
+export const STATS = [
+  { value: '₦4.8b+', label: 'Travel secured' },
+  { value: '12k+', label: 'Trips fulfilled' },
+  { value: '< 2 hrs', label: 'Avg. quote time' },
+  { value: '99.9%', label: 'Platform uptime' },
+];
+
+export const FEATURES = [
+  { icon: Wallet, title: 'Pre-funded wallet', desc: 'Top up once and book freely. Funds stay yours until you approve a quote.', tint: 'bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-soft' },
+  { icon: Lock, title: 'Approve-to-lock', desc: 'Money is only locked on approval and captured at ticketing. Zero risk.', tint: 'bg-green/10 text-green-dark dark:bg-green/20 dark:text-green' },
+  { icon: MapPin, title: 'Real-time tracking', desc: 'Follow every request from submission to issued ticket, live.', tint: 'bg-[#C5A059]/15 text-[#a07d35] dark:bg-[#C5A059]/20 dark:text-[#E5C185]' },
+  { icon: Headphones, title: 'Dedicated agents', desc: 'A real agency team curates options and handles the heavy lifting.', tint: 'bg-[#7C3AED]/10 text-[#7C3AED] dark:bg-[#7C3AED]/20 dark:text-[#C4B5FD]' },
+  { icon: ShieldCheck, title: 'NDPA-grade security', desc: 'Encrypted data and compliant handling of every passenger record.', tint: 'bg-blue/10 text-blue dark:bg-blue/20 dark:text-blue-soft' },
+  { icon: Ticket, title: 'Instant e-tickets', desc: 'Issued tickets land in your dashboard, ready to download.', tint: 'bg-brand/10 text-brand dark:bg-brand/20 dark:text-brand-soft' },
+];
+
+export const STEPS = [
+  { icon: PlaneTakeoff, title: 'Submit a request', desc: 'Tell us your route, dates and passengers in minutes.' },
+  { icon: Sparkles, title: 'Get curated quotes', desc: 'Agents send tailored flight options to review.' },
+  { icon: Lock, title: 'Approve & lock', desc: 'Pick an option — funds lock securely in your wallet.' },
+  { icon: Ticket, title: 'Fly & auto-capture', desc: 'Your ticket is issued and funds captured. Done.' },
+];
+
+export const SECURITY_POINTS = [
+  'Funds locked only on approval, captured only at issuance',
+  'Cancel before issuance for an instant release',
+  'Bank-grade encryption and NDPA-compliant data handling',
+  'Payments processed securely through Paystack',
+];
+
+export const CLIENT_PERKS = ['Submit & track requests', 'One-tap quote approval', 'Pre-funded wallet & receipts'];
+export const AGENT_PERKS = ['Shared request queue', 'Build & send quote options', 'Issue tickets & manage wallets'];
+
+export const NAV_LINKS = [
+  { label: 'Features', href: '#features' },
+  { label: 'How it works', href: '#how' },
+  { label: 'Security', href: '#security' },
+  { label: 'Portals', href: '#portals' },
 ];

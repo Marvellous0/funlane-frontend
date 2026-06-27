@@ -1,7 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   content: [
     './src/**/*.{ts,tsx}',
+    './src/components/**/*.{ts,tsx}',
+    './src/containers/**/*.{ts,tsx}',
+    './src/lib/**/*.{ts,tsx}',
+    './src/app/**/*.{ts,tsx}',
   ],
   theme: {
     extend: {
@@ -95,6 +100,31 @@ module.exports = {
           '0%, 100%': { transform: 'translateY(0)' },
           '50%': { transform: 'translateY(-3px)' },
         },
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-16px)' },
+        },
+        'gradient-pan': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+        'spin-slow': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
+        aurora: {
+          '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+          '33%': { transform: 'translate(40px, -30px) scale(1.12)' },
+          '66%': { transform: 'translate(-30px, 25px) scale(0.92)' },
+        },
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
       },
       animation: {
         'slide-up': 'slide-up 0.3s ease-out',
@@ -104,6 +134,14 @@ module.exports = {
         'pulse-green': 'pulse-green 2s infinite',
         'toast-progress': 'toast-progress 5s linear forwards',
         'bounce-subtle': 'bounce-subtle 1.5s ease-in-out infinite',
+        float: 'float 6s ease-in-out infinite',
+        'float-slow': 'float 9s ease-in-out infinite',
+        'gradient-pan': 'gradient-pan 10s ease infinite',
+        'spin-slow': 'spin-slow 32s linear infinite',
+        'spin-slower': 'spin-slow 60s linear infinite',
+        marquee: 'marquee 30s linear infinite',
+        aurora: 'aurora 16s ease-in-out infinite',
+        shimmer: 'shimmer 3s linear infinite',
       },
     },
   },
