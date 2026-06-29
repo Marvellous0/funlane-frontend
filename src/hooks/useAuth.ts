@@ -9,6 +9,24 @@ import { toast } from 'react-toastify'
 /** Staff portals with dedicated login endpoints. */
 export type StaffPortal = 'admin' | 'agent';
 
+/**
+ * Reads and clears a stashed post-login destination (e.g. a `/requests/{id}`
+ * deep link the visitor hit while signed out). Only internal paths are honored.
+ */
+function consumeNext(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const next = sessionStorage.getItem('funlane-next');
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      sessionStorage.removeItem('funlane-next');
+      return next;
+    }
+  } catch {
+    /* ignore storage failures */
+  }
+  return null;
+}
+
 export function useAuth() {
   const user = useAuthStore((s) => s.user);
   const login = useAuthStore((s) => s.login);
@@ -27,7 +45,7 @@ export function useAuth() {
       });
       const authUser = toAuthUser(publicUser);
       login(authUser, token);
-      router.replace(homePathFor(authUser.role));
+      router.replace(consumeNext() ?? homePathFor(authUser.role));
       return true;
     } catch (err) {
       const e = err as ApiError;
@@ -69,8 +87,8 @@ export function useAuth() {
         token = res.token;
       }
       const authUser = toAuthUser(publicUser);
-      const resp = login(authUser, token);
-      router.replace(homePathFor(authUser.role));
+      login(authUser, token);
+      router.replace(consumeNext() ?? homePathFor(authUser.role));
       return true;
     } catch (err) {
       const e = err as ApiError;
