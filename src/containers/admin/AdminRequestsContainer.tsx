@@ -52,7 +52,7 @@ export function AdminRequestsContainer() {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card overflow-hidden">
+      <div className="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
         {error ? (
           <div className="p-10 text-center">
             <AlertTriangle aria-hidden="true" className="w-8 h-8 text-amber mx-auto mb-3" />
@@ -95,7 +95,7 @@ function FilterChip({ active, onClick, label }: { active: boolean; onClick: () =
     <button
       onClick={onClick}
       className={`px-3.5 h-9 rounded-lg text-sm font-semibold border transition-colors ${
-        active ? 'bg-ink text-white border-ink shadow-sm' : 'bg-white text-ink-2 border-line hover:border-ink/30 hover:text-ink'
+        active ? 'bg-ink text-card border-ink shadow-sm' : 'bg-card text-ink-2 border-line hover:border-ink/30 hover:text-ink'
       }`}
     >
       {label}

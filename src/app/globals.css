@@ -5,14 +5,72 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Geist:wght@100..900&display=swap');
 
 @layer base {
+  /* Themed palette as space-separated RGB channels so Tailwind's
+     `rgb(var(--x) / <alpha-value>)` tokens flip under `.dark` and still honour
+     `/opacity` modifiers. Light is the default. */
   :root {
-    --brand: #1670B5;
-    --brand-dark: #0F5390;
-    --gold: #C5A059;
-    --navy: #05162E;
-    --amber: #D97706;
-    --purple: #7C3AED;
-    --green: #10B981;
+    --surface: 248 250 252;
+    --card: 255 255 255;
+    --line: 226 232 240;
+    --ink: 15 23 42;
+    --ink-2: 51 65 85;
+    --ink-3: 100 116 139;
+
+    --brand: 22 112 181;
+    --brand-dark: 15 83 144;
+    --brand-soft: 228 241 251;
+    --green: 16 185 129;
+    --green-dark: 5 150 105;
+    --green-soft: 236 253 245;
+    --red: 239 68 68;
+    --red-dark: 220 38 38;
+    --red-soft: 254 242 242;
+    --amber: 217 119 6;
+    --amber-dark: 180 83 9;
+    --amber-soft: 254 243 199;
+    --purple: 124 58 237;
+    --purple-soft: 237 233 254;
+    --blue: 3 105 161;
+    --blue-dark: 7 89 133;
+    --blue-soft: 224 242 254;
+
+    /* Skeleton shimmer stops. */
+    --skeleton-base: 238 242 247;
+    --skeleton-highlight: 226 232 240;
+
+    color-scheme: light;
+  }
+
+  .dark {
+    --surface: 9 14 26;
+    --card: 19 28 46;
+    --line: 39 51 74;
+    --ink: 232 237 244;
+    --ink-2: 183 194 212;
+    --ink-3: 138 151 172;
+
+    --brand: 74 163 224;
+    --brand-dark: 58 143 214;
+    --brand-soft: 20 41 62;
+    --green: 52 211 153;
+    --green-dark: 52 211 153;
+    --green-soft: 16 40 33;
+    --red: 248 113 113;
+    --red-dark: 248 113 113;
+    --red-soft: 42 22 24;
+    --amber: 251 191 36;
+    --amber-dark: 251 191 36;
+    --amber-soft: 42 33 19;
+    --purple: 167 139 250;
+    --purple-soft: 32 26 51;
+    --blue: 56 189 248;
+    --blue-dark: 56 189 248;
+    --blue-soft: 16 39 58;
+
+    --skeleton-base: 19 28 46;
+    --skeleton-highlight: 39 51 74;
+
+    color-scheme: dark;
   }
 
   * { box-sizing: border-box; }
@@ -31,7 +89,8 @@
 
   /* Consistent, visible focus ring for keyboard users across the app. */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand/40 ring-offset-2 ring-offset-white;
+    @apply outline-none ring-2 ring-brand/40 ring-offset-2;
+    --tw-ring-offset-color: rgb(var(--surface));
   }
 }
 
@@ -43,9 +102,14 @@
       radial-gradient(70% 55% at 50% 0%, #E5EEFF 0%, transparent 60%),
       #F8F9FF;
   }
+  .dark .auth-wrap {
+    background:
+      radial-gradient(70% 55% at 50% 0%, #0F1B2E 0%, transparent 60%),
+      #090E1A;
+  }
   /* Split layout (login / sign up) */
   .auth-split {
-    @apply w-full h-screen grid lg:grid-cols-2 bg-white;
+    @apply w-full h-screen grid lg:grid-cols-2 bg-card;
   }
 
   .auth-hero {
@@ -106,18 +170,18 @@
            px-5 py-3
            sm:px-8
            lg:px-14 lg:py-12
-           bg-white;
+           bg-card;
   }
   /* Centered card (forgot / reset / verify) */
   .auth-panel {
-    @apply w-full max-w-md bg-white rounded-2xl border border-line p-5 sm:p-8;
+    @apply w-full max-w-md bg-card rounded-2xl border border-line p-5 sm:p-8;
     box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
   }
   /* Leading-icon input */
   .auth-field {
-    @apply w-full h-12 pl-11 pr-4 bg-surface border border-line rounded-lg text-sm text-ink 
+    @apply w-full h-12 pl-11 pr-4 bg-surface border border-line rounded-lg text-sm text-ink
            placeholder:text-ink-3/70 focus:outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-400/25
-           focus:bg-white transition-colors;
+           focus:bg-card transition-colors;
   }
   /* Azure security / NDPA banner */
   .auth-banner {
@@ -128,6 +192,10 @@
     @apply w-full h-12 inline-flex items-center justify-center gap-2 bg-ink text-white font-semibold text-sm
            rounded-lg hover:bg-ink-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
   }
+  /* `bg-ink` inverts to light in dark mode, so pin the button to a dark slate
+     to keep the white label readable. */
+  .dark .auth-btn { background-color: #1E293B; color: #fff; }
+  .dark .auth-btn:hover:not(:disabled) { background-color: #334155; }
 
   /* ---- OTP input ---- */
   .otp-group {

@@ -1,14 +1,15 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useAgentQueue } from '@/hooks/useRequestsLive';
 import { fmtDate, initials } from '@/utils/format';
 import { passengerSummary, shortRoute } from '@/utils/request.utils';
-import { StatusBadge, Spinner, PageHeader } from '@/components/ui';
+import { StatusBadge, Spinner, PageHeader, StatCard } from '@/components/ui';
+import { AgentRequestPeek } from './AgentRequestPeek';
 import type { RequestVM } from '@/services/requestView';
 import type { ApiRequestStatus } from '@/interface';
-import { Inbox, AlertTriangle, RefreshCw, LayoutGrid } from 'lucide-react';
+import { Inbox, AlertTriangle, RefreshCw, LayoutGrid, Hand, Send, Ticket } from 'lucide-react';
 
 const COLUMNS: { title: string; color: string; statuses: ApiRequestStatus[] }[] = [
   { title: 'New Requests', color: '#D97706', statuses: ['PENDING'] },
@@ -18,9 +19,18 @@ const COLUMNS: { title: string; color: string; statuses: ApiRequestStatus[] }[] 
 ];
 
 export function AgentBoardContainer() {
-  const router = useRouter();
   const name = useAuthStore((s) => s.user?.name) ?? 'Agent';
   const { items, loading, error, refresh } = useAgentQueue();
+
+  // Peek drawer: keep the summary during the exit animation, then clear it.
+  const [peek, setPeek] = useState<RequestVM | null>(null);
+  const [peekOpen, setPeekOpen] = useState(false);
+  const openPeek = (r: RequestVM) => { setPeek(r); setPeekOpen(true); };
+  const closePeek = () => { setPeekOpen(false); setTimeout(() => setPeek(null), 320); };
+
+  const unclaimed = items.filter((r) => r.status === 'PENDING' && !r.assignedAgentId).length;
+  const awaitingClient = items.filter((r) => r.status === 'OPTIONS_SENT').length;
+  const readyToIssue = items.filter((r) => r.status === 'APPROVED_LOCKED').length;
 
   return (
     <div className="space-y-6 animate-fade-in flex flex-col min-h-[calc(100vh-140px)]">
@@ -37,8 +47,17 @@ export function AgentBoardContainer() {
         }
       />
 
+      {!error && (
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <StatCard label="In queue" value={items.length} icon={LayoutGrid} iconTone="brand" loading={loading} />
+          <StatCard label="Unclaimed" value={unclaimed} icon={Hand} iconTone="amber" highlight={unclaimed > 0} loading={loading} />
+          <StatCard label="Awaiting client" value={awaitingClient} icon={Send} iconTone="purple" loading={loading} />
+          <StatCard label="Ready to issue" value={readyToIssue} icon={Ticket} iconTone="green" highlight={readyToIssue > 0} loading={loading} />
+        </section>
+      )}
+
       {error ? (
-        <div className="bg-white rounded-2xl border border-line shadow-card p-8 text-center">
+        <div className="bg-card rounded-2xl border border-line shadow-card p-8 text-center">
           <AlertTriangle aria-hidden="true" className="w-8 h-8 text-amber mx-auto mb-3" />
           <p className="text-sm text-ink-2">{error}</p>
           <button onClick={refresh} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink hover:underline"><RefreshCw className="w-4 h-4" /> Try again</button>
@@ -61,7 +80,7 @@ export function AgentBoardContainer() {
                   {loading ? (
                     <div className="h-28 flex items-center justify-center"><Spinner className="text-brand" /></div>
                   ) : cards.length ? (
-                    cards.map((r) => <BoardCard key={r.id} r={r} onOpen={() => router.push(`/agent/requests/${r.id}`)} />)
+                    cards.map((r) => <BoardCard key={r.id} r={r} onOpen={() => openPeek(r)} />)
                   ) : (
                     <div className="h-28 flex flex-col items-center justify-center text-center text-ink-3 text-sm">
                       <Inbox aria-hidden="true" className="w-5 h-5 mb-1.5 opacity-60" /> No requests
@@ -73,6 +92,10 @@ export function AgentBoardContainer() {
           })}
         </div>
       )}
+
+      {peek && (
+        <AgentRequestPeek summary={peek} open={peekOpen} onClose={closePeek} onChanged={refresh} />
+      )}
     </div>
   );
 }
@@ -80,7 +103,7 @@ export function AgentBoardContainer() {
 function BoardCard({ r, onOpen }: { r: RequestVM; onOpen: () => void }) {
   return (
     <button type="button" onClick={onOpen}
-      className="group w-full text-left bg-white p-4 rounded-xl border border-line shadow-card hover:shadow-lg hover:-translate-y-0.5 transition-all">
+      className="group w-full text-left bg-card p-4 rounded-xl border border-line shadow-card hover:shadow-lg hover:-translate-y-0.5 transition-all">
       <div className="flex justify-between items-start mb-2.5">
         <span className="text-[11px] font-semibold text-ink-2 bg-surface px-2 py-0.5 rounded border border-line uppercase tracking-wide">{r.ref}</span>
         <StatusBadge status={r.status} />

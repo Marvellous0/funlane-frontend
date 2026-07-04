@@ -2,22 +2,17 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { usePasswordStrength } from '@/hooks/usePasswordStrength';
+import { Formik, Form, useFormikContext, type FormikHelpers } from 'formik';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/api';
-import { FunlaneLogo } from '@/components/ui/Logo';
-import { IconUser, IconMail, IconPhone, IconLock, IconEye, IconEyeOff, IconArrowRight } from '@/components/ui/icons';
-import { Shield, MapPin, AlertTriangle } from 'lucide-react';
+import { IconArrowRight } from '@/components/ui/icons';
+import { User, Mail, Phone, Lock } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { AuthLayout } from '@/components/layout/AuthLayout';
-import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
+import { TextField, CheckboxField } from '@/components/form';
 import { signupSchema } from '@/lib/validation/schemas';
 
-const labelClass = 'block text-sm font-medium text-ink mb-1.5';
-const errorClass = 'mt-1.5 text-xs text-red-dark';
-
-type SignUpFields = {
+type SignUpValues = {
   firstName: string;
   lastName: string;
   email: string;
@@ -27,50 +22,36 @@ type SignUpFields = {
   ndpaConsent: boolean;
 };
 
+const initialValues: SignUpValues = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  phone: '',
+  password: '',
+  confirm: '',
+  ndpaConsent: false,
+};
 
-const HERO_FEATURES = [
-  { icon: Shield, title: 'NDPA Compliant', desc: 'Encrypted, enterprise-grade security.' },
-  { icon: MapPin, title: 'Real-time Tracking', desc: 'Follow every request end to end.' },
-];
+/** Same rules as usePasswordStrength, as a pure function so it can run anywhere. */
+function passwordChecks(password: string) {
+  const met = {
+    length: password.length >= 8,
+    mixed: /[A-Z]/.test(password) && /[a-z]/.test(password) && /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+  const score = (met.length ? 1 : 0) + (met.mixed ? 2 : 0) + (met.special ? 1 : 0);
+  return { met, score };
+}
 
 export function SignUpContainer() {
-  const router = useRouter();
   const { register } = useAuth();
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-  });
-  const [confirm, setConfirm] = useState('');
-  const [ndpaConsent, setNdpaConsent] = useState(false);
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [errors, setErrors] = useState<FieldErrors<SignUpFields>>({});
 
-  const strength = usePasswordStrength(formData.password);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const { errors: invalid } = await validateSchema(signupSchema, {
-      ...formData,
-      confirm,
-      ndpaConsent,
-    });
-    if (invalid) {
-      setErrors(invalid);
+  async function onSubmit(values: SignUpValues, helpers: FormikHelpers<SignUpValues>) {
+    if (passwordChecks(values.password).score < 2) {
+      helpers.setFieldError('password', 'Password does not meet complexity requirements (8+ mixed characters).');
       return;
     }
-    if (strength.score < 2) {
-      setErrors({ password: 'Password does not meet complexity requirements (8+ mixed characters).' });
-      return;
-    }
-    setErrors({});
-    setLoading(true);
-    setError('');
 
     // Compliance log captured client-side; not part of the backend contract.
     console.log('Compliance Log Captured:', {
@@ -79,28 +60,20 @@ export function SignUpContainer() {
     });
 
     try {
-      const name = `${formData.firstName} ${formData.lastName}`.trim();
+      const name = `${values.firstName} ${values.lastName}`.trim();
       const response = await register({
         name,
-        email: formData.email.trim(),
-        phone: formData.phone.trim(),
-        password: formData.password,
+        email: values.email.trim(),
+        phone: values.phone.trim(),
+        password: values.password,
       });
 
       toast.success(
         response.message ||
         'Registration successful. Check your email to verify your account.'
       );
-      // Registration succeeded; a verification email is on its way.
-      // setTimeout(() => {
-      //   router.push(
-      //     `/verify?email=${encodeURIComponent(formData.email.trim())}`
-      //   );
-      // }, 3000); // 3 seconds
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not create your account. Please try again.')
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -109,144 +82,25 @@ export function SignUpContainer() {
     setOauthNotice('Google sign-up is coming soon — please register with your email.');
   }
 
-  function updateField(field: string, value: string) {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-  }
-
   return (
     <AuthLayout title="Global Logistics, Simplified."
       description="Join an exclusive network of travelers and corporations moving the world with confidence.">
       <h1 className="text-2xl font-bold text-ink mb-1.5">Create an account</h1>
       <p className="text-ink-3 text-sm mb-6">Join Funlane Travels &amp; Logistics.</p>
 
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="firstName" className={labelClass}>First name</label>
-            <div className="relative">
-              <IconUser className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="firstName" type="text" value={formData.firstName} onChange={(e) => updateField('firstName', e.target.value)} placeholder="John" className="auth-field" />
-            </div>
-            {errors.firstName && <p className={errorClass}>{errors.firstName}</p>}
-          </div>
-          <div>
-            <label htmlFor="lastName" className={labelClass}>Last name</label>
-            <div className="relative">
-              <IconUser className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="lastName" type="text" value={formData.lastName} onChange={(e) => updateField('lastName', e.target.value)} placeholder="Doe" className="auth-field" />
-            </div>
-            {errors.lastName && <p className={errorClass}>{errors.lastName}</p>}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="email" className={labelClass}>Email address</label>
-            <div className="relative">
-              <IconMail className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="email" type="email" value={formData.email} onChange={(e) => updateField('email', e.target.value)} placeholder="name@company.com" className="auth-field" />
-            </div>
-            {errors.email && <p className={errorClass}>{errors.email}</p>}
-          </div>
-          <div>
-            <label htmlFor="phone" className={labelClass}>Phone number</label>
-            <div className="relative">
-              <IconPhone className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input id="phone" type="tel" value={formData.phone} onChange={(e) => updateField('phone', e.target.value)} placeholder="+1 (555) 000-0000" className="auth-field" />
-            </div>
-            {errors.phone && <p className={errorClass}>{errors.phone}</p>}
-          </div>
-        </div>
-
-
-        <div>
-          <label htmlFor="signup-password" className={labelClass}>Password</label>
-          <div className="relative">
-            <IconLock className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              id="signup-password"
-              type={showPw ? 'text' : 'password'}
-              value={formData.password}
-              onChange={(e) => updateField('password', e.target.value)}
-              placeholder="••••••••"
-              aria-invalid={Boolean(errors.password)}
-              className="auth-field pr-11"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              aria-label={showPw ? 'Hide password' : 'Show password'}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-ink-3 hover:text-ink hover:bg-surface transition-colors"
-            >
-              {showPw ? <IconEyeOff className="w-5 h-5" /> : <IconEye className="w-5 h-5" />}
-            </button>
-          </div>
-          {formData.password && (
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              <StrengthChip active={strength.met.length} label="8+ characters" />
-              <StrengthChip active={strength.met.mixed && strength.met.special} label="Mixed case / symbols" />
-            </div>
-          )}
-          {errors.password && <p className={errorClass}>{errors.password}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="confirm-password" className={labelClass}>Confirm password</label>
-          <div className="relative">
-            <IconLock className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              id="confirm-password"
-              type={showPw ? 'text' : 'password'}
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="••••••••"
-              aria-invalid={Boolean(errors.confirm)}
-              className="auth-field"
-            />
-          </div>
-          {errors.confirm && <p className={errorClass}>{errors.confirm}</p>}
-        </div>
-
-        <div className="bg-surface rounded-lg p-3.5 space-y-3 border border-line">
-          <div className="flex items-start gap-3">
-            <input
-              type="checkbox"
-              id="ndpa"
-              checked={ndpaConsent}
-              onChange={(e) => setNdpaConsent(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-line text-sky-500 focus:ring-sky-400"
-            />
-            <label htmlFor="ndpa" className="text-xs text-ink-2 leading-relaxed select-none">
-              I agree to the <span className="text-ink font-semibold underline">Terms of Service</span> and{' '}
-              <span className="text-ink font-semibold underline">Privacy Policy</span>, and consent to
-              NDPA-compliant data processing.
-            </label>
-          </div>
-          {errors.ndpaConsent && <p className={errorClass}>{errors.ndpaConsent}</p>}
-        </div>
-
-        {error && (
-          <div className="bg-red-soft text-red-dark rounded-lg px-4 py-3 text-sm font-medium animate-slide-up flex items-center gap-2">
-            <AlertTriangle aria-hidden="true" className="w-4 h-4 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
-
-        <button type="submit" disabled={loading} className="auth-btn">
-          {loading ? 'Creating account…' : 'Create account'}
-          {!loading && <IconArrowRight className="w-4 h-4" />}
-        </button>
-      </form>
+      <Formik initialValues={initialValues} validationSchema={signupSchema} onSubmit={onSubmit}>
+        <SignUpFormFields />
+      </Formik>
 
       <div className="relative flex items-center justify-center my-5">
         <div className="w-full h-px bg-line" />
-        <span className="absolute bg-white px-3 text-xs text-ink-3">or continue with</span>
+        <span className="absolute bg-card px-3 text-xs text-ink-3">or continue with</span>
       </div>
 
       <button
         type="button"
         onClick={handleGoogleSignUp}
-        className="w-full h-12 flex items-center justify-center gap-3 border border-line rounded-lg bg-white hover:bg-surface transition-colors"
+        className="w-full h-12 flex items-center justify-center gap-3 border border-line rounded-lg bg-card hover:bg-surface transition-colors"
       >
         <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -268,6 +122,67 @@ export function SignUpContainer() {
         </Link>
       </p>
     </AuthLayout>
+  );
+}
+
+/** Rendered inside <Formik> so it can read live values for the strength chips. */
+function SignUpFormFields() {
+  const { values, isSubmitting } = useFormikContext<SignUpValues>();
+  const { met } = passwordChecks(values.password);
+
+  return (
+    <Form noValidate className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <TextField name="firstName" label="First name" placeholder="John" icon={User} autoComplete="given-name" />
+        <TextField name="lastName" label="Last name" placeholder="Doe" icon={User} autoComplete="family-name" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <TextField name="email" type="email" label="Email address" placeholder="name@company.com" icon={Mail} autoComplete="email" />
+        <TextField name="phone" type="tel" label="Phone number" placeholder="+1 (555) 000-0000" icon={Phone} autoComplete="tel" />
+      </div>
+
+      <div>
+        <TextField
+          name="password"
+          type="password"
+          label="Password"
+          placeholder="••••••••"
+          icon={Lock}
+          autoComplete="new-password"
+          id="signup-password"
+        />
+        {values.password && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <StrengthChip active={met.length} label="8+ characters" />
+            <StrengthChip active={met.mixed && met.special} label="Mixed case / symbols" />
+          </div>
+        )}
+      </div>
+
+      <TextField
+        name="confirm"
+        type="password"
+        label="Confirm password"
+        placeholder="••••••••"
+        icon={Lock}
+        autoComplete="new-password"
+        id="confirm-password"
+      />
+
+      <CheckboxField name="ndpaConsent" className="bg-surface rounded-lg p-3.5 border border-line">
+        <span className="text-xs text-ink-2 leading-relaxed">
+          I agree to the <span className="text-ink font-semibold underline">Terms of Service</span> and{' '}
+          <span className="text-ink font-semibold underline">Privacy Policy</span>, and consent to
+          NDPA-compliant data processing.
+        </span>
+      </CheckboxField>
+
+      <button type="submit" disabled={isSubmitting} className="auth-btn">
+        {isSubmitting ? 'Creating account…' : 'Create account'}
+        {!isSubmitting && <IconArrowRight className="w-4 h-4" />}
+      </button>
+    </Form>
   );
 }
 

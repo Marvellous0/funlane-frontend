@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import type { NavSection } from '@/components/layout/navTypes';
 
-import { LayoutDashboard, Plane, ClipboardList, Bell, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Plane, ClipboardList, Bell, CreditCard, Settings } from 'lucide-react';
 
 const SECTIONS: NavSection[] = [
   {
@@ -18,7 +18,10 @@ const SECTIONS: NavSection[] = [
   },
   {
     title: 'Account',
-    items: [{ label: 'Wallet', icon: CreditCard, href: '/client/wallet' }],
+    items: [
+      { label: 'Wallet', icon: CreditCard, href: '/client/wallet' },
+      { label: 'Settings', icon: Settings, href: '/client/settings' },
+    ],
   },
 ];
 

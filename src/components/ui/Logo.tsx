@@ -73,7 +73,7 @@ export function FunlaneLogo({
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`} style={style}>
       {chip ? (
-        <span className="inline-flex items-center justify-center rounded-xl bg-white p-1.5 shadow-sm">
+        <span className="inline-flex items-center justify-center rounded-xl bg-card p-1.5 shadow-sm">
           <FunlaneMark className={markClassName} />
         </span>
       ) : (

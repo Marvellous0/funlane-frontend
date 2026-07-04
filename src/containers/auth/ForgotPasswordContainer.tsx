@@ -3,43 +3,31 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Formik, Form } from 'formik';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/api';
-import { IconMail, IconArrowLeft, IconArrowRight, IconShield } from '@/components/ui';
-import { AlertTriangle, MailCheck } from 'lucide-react';
+import { IconArrowLeft, IconArrowRight, IconShield } from '@/components/ui';
+import { Mail, MailCheck } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { toast } from 'react-toastify';
-import { validateSchema } from '@/lib/validation/validate';
+import { TextField } from '@/components/form';
 import { forgotPasswordSchema } from '@/lib/validation/schemas';
 
 export function ForgotPasswordContainer() {
   const router = useRouter();
   const { forgotPassword } = useAuth();
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
+  const [sentTo, setSentTo] = useState<string | null>(null);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const { errors: invalid } = await validateSchema(forgotPasswordSchema, { email });
-    if (invalid) {
-      setError(invalid.email ?? 'Enter a valid email address.');
-      return;
-    }
-    setLoading(true);
-    setError('');
+  async function onSubmit(values: { email: string }) {
     try {
       // The backend always returns a generic confirmation (no account enumeration).
-      const response = await forgotPassword(email.trim());
+      const response = await forgotPassword(values.email.trim());
       setTimeout(() => {
         toast.success(response.message);
       }, 1000);
-      setSent(true);
+      setSentTo(values.email.trim());
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not send the reset link. Please try again.');
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -49,20 +37,20 @@ export function ForgotPasswordContainer() {
               movement is managed with absolute transparency.'>
 
       <div>
-        {sent ? (
+        {sentTo ? (
           <div className="text-center">
             <div aria-hidden="true" className="w-14 h-14 rounded-full bg-green-soft text-green flex items-center justify-center mx-auto mb-4">
               <MailCheck className="w-7 h-7" />
             </div>
             <h1 className="text-2xl font-bold text-ink mb-2">Check your email</h1>
             <p className="text-ink-3 text-sm mb-6 leading-relaxed">
-              If an account exists for <strong className="text-ink">{email}</strong>, we&apos;ve sent a reset link.
+              If an account exists for <strong className="text-ink">{sentTo}</strong>, we&apos;ve sent a reset link.
               Open it to choose a new password.
             </p>
             <button onClick={() => router.push('/login')} className="auth-btn mb-3">
               Back to login
             </button>
-            <button onClick={() => setSent(false)} className="text-sm text-ink-3 hover:text-ink font-medium transition-colors">
+            <button onClick={() => setSentTo(null)} className="text-sm text-ink-3 hover:text-ink font-medium transition-colors">
               Didn&apos;t receive it? Try again
             </button>
           </div>
@@ -74,42 +62,34 @@ export function ForgotPasswordContainer() {
               account.
             </p>
 
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="forgot-email" className="block text-sm font-medium text-ink mb-1.5">Email address</label>
-                <div className="relative">
-                  <IconMail className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    id="forgot-email"
+            <Formik initialValues={{ email: '' }} validationSchema={forgotPasswordSchema} onSubmit={onSubmit}>
+              {({ isSubmitting }) => (
+                <Form noValidate className="space-y-4">
+                  <TextField
+                    name="email"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    label="Email address"
                     placeholder="e.g. alex@logistics.com"
-                    className="auth-field"
+                    icon={Mail}
+                    autoComplete="email"
+                    id="forgot-email"
                   />
-                </div>
-              </div>
 
-              <div className="auth-banner">
-                <IconShield className="w-5 h-5 text-blue shrink-0 mt-0.5" />
-                <p className="text-xs leading-relaxed">
-                  <span className="font-semibold text-ink">NDPA-compliant process.</span> For security, we never
-                  store your original password. The reset link expires in 1 hour.
-                </p>
-              </div>
+                  <div className="auth-banner">
+                    <IconShield className="w-5 h-5 text-blue shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed">
+                      <span className="font-semibold text-ink">NDPA-compliant process.</span> For security, we never
+                      store your original password. The reset link expires in 1 hour.
+                    </p>
+                  </div>
 
-              {error && (
-                <div className="bg-red-soft text-red-dark rounded-lg px-4 py-3 text-sm font-medium animate-slide-up flex items-center gap-2">
-                  <AlertTriangle aria-hidden="true" className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
+                  <button type="submit" disabled={isSubmitting} className="auth-btn">
+                    {isSubmitting ? 'Sending…' : 'Send reset link'}
+                    {!isSubmitting && <IconArrowRight className="w-4 h-4" />}
+                  </button>
+                </Form>
               )}
-
-              <button type="submit" disabled={loading} className="auth-btn">
-                {loading ? 'Sending…' : 'Send reset link'}
-                {!loading && <IconArrowRight className="w-4 h-4" />}
-              </button>
-            </form>
+            </Formik>
 
             <Link
               href="/login"

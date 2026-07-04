@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { DashboardShell } from '@/components/layout/DashboardShell';
 import type { NavSection } from '@/components/layout/navTypes';
 
-import { FolderKanban, Ticket, ClipboardList, ShieldCheck, Users } from 'lucide-react';
+import { FolderKanban, Ticket, ClipboardList, ShieldCheck, Users, Settings } from 'lucide-react';
 
 const SECTIONS: NavSection[] = [
   {
@@ -22,6 +22,10 @@ const SECTIONS: NavSection[] = [
       { label: 'Security Audit', icon: ShieldCheck, href: '/agent/audit' },
       { label: 'Clients & Wallets', icon: Users, href: '/agent/clients' },
     ],
+  },
+  {
+    title: 'Account',
+    items: [{ label: 'Settings', icon: Settings, href: '/agent/settings' }],
   },
 ];
 

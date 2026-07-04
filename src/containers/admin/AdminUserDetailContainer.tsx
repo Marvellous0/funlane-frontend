@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 const ROLE_AVATAR: Record<BackendRole, string> = {
-  ADMIN: 'bg-ink text-white',
+  ADMIN: 'bg-ink text-card',
   AGENT: 'bg-blue text-white',
   CLIENT: 'bg-green text-white',
 };
@@ -75,7 +75,7 @@ export function AdminUserDetailContainer({ id }: { id: string }) {
 
   if (error || !user) {
     return (
-      <div className="bg-white rounded-2xl border border-line shadow-card p-10 text-center max-w-md mx-auto">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-10 text-center max-w-md mx-auto">
         <AlertTriangle aria-hidden="true" className="w-8 h-8 text-amber mx-auto mb-3" />
         <p className="text-sm text-ink-2">{error ?? 'User not found.'}</p>
         <div className="flex items-center justify-center gap-3 mt-5">
@@ -99,7 +99,7 @@ export function AdminUserDetailContainer({ id }: { id: string }) {
       </Link>
 
       {/* Compact identity banner */}
-      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-ink to-brand-dark text-white p-5 sm:p-6 shadow-card">
+      <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-navy-light to-brand-dark text-white p-5 sm:p-6 shadow-card">
         <div aria-hidden="true" className="absolute inset-0 bg-[radial-gradient(130%_140%_at_90%_-20%,rgba(255,255,255,0.12),transparent_55%)]" />
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
@@ -124,7 +124,7 @@ export function AdminUserDetailContainer({ id }: { id: string }) {
       </header>
 
       {/* Profile card */}
-      <section className="bg-white rounded-2xl border border-line shadow-card overflow-hidden">
+      <section className="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
         <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-line">
           <h2 className="font-semibold text-ink">Profile details</h2>
           {!editing ? (
@@ -182,7 +182,7 @@ export function AdminUserDetailContainer({ id }: { id: string }) {
       </section>
 
       {/* Management card */}
-      <section className="bg-white rounded-2xl border border-line shadow-card overflow-hidden">
+      <section className="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
         <div className="px-5 sm:px-6 py-4 border-b border-line">
           <h2 className="font-semibold text-ink">Account management</h2>
         </div>

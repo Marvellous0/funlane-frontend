@@ -69,6 +69,22 @@ export const adminRegisterSchema = yup.object({
     .oneOf([yup.ref('password')], 'Passwords do not match.'),
 });
 
+/* Settings (self-service) --------------------------------------------- */
+
+export const updateProfileSchema = yup.object({
+  name: name('Full name'),
+  phone,
+});
+
+export const changePasswordSchema = yup.object({
+  currentPassword: yup.string().required('Enter your current password.'),
+  newPassword: strongPassword,
+  confirm: yup
+    .string()
+    .required('Please confirm your new password.')
+    .oneOf([yup.ref('newPassword')], 'Passwords do not match.'),
+});
+
 /* Admin onboarding ---------------------------------------------------- */
 
 export const onboardAgentSchema = yup.object({
@@ -86,11 +102,30 @@ export const createAdminSchema = yup.object({
 
 /* Travel requests ----------------------------------------------------- */
 
+export const passengerSchema = yup.object({
+  fullName: yup.string().trim().required('Full name is required.'),
+  passportNumber: yup.string().trim().required('Passport number is required.'),
+  nationality: yup.string().trim().required('Nationality is required.'),
+  dateOfBirth: yup.string().required('Date of birth is required.'),
+  passportExpiry: yup.string().required('Passport expiry is required.'),
+  file: yup
+    .mixed<File>()
+    .nullable()
+    .required('A passport scan (JPEG, PNG or PDF) is required.'),
+});
+
 export const newRequestSchema = yup.object({
+  tripType: yup.string().oneOf(['oneway', 'round']).required(),
   origin: yup.string().trim().required('Origin city is required.'),
   destination: yup.string().trim().required('Destination is required.'),
   departureDate: yup.string().required('Departure date is required.'),
+  returnDate: yup.string().when('tripType', {
+    is: 'round',
+    then: (s) => s.required('Return date is required for a round trip.'),
+    otherwise: (s) => s.notRequired(),
+  }),
   budgetTier: yup.string().required('Select a cabin class.'),
+  passengers: yup.array().of(passengerSchema).min(1, 'Add at least one passenger.').required(),
 });
 
 export const quoteOptionSchema = yup.object({

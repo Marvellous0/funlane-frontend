@@ -2,9 +2,9 @@
 
 import type { ElementType, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Loader } from './Spinner';
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
+import { Skeleton } from './Skeleton';
 
 export interface Column<T> {
   /** Column header label. */
@@ -31,6 +31,8 @@ interface DataTableProps<T> {
   /* Built-in states (only used when `card` is true) */
   loading?: boolean;
   loadingLabel?: string;
+  /** Number of shimmer rows to show while loading. Defaults to 5. */
+  skeletonRows?: number;
   error?: string | null;
   onRetry?: () => void;
   emptyIcon?: ElementType;
@@ -59,6 +61,7 @@ export function DataTable<T>({
   rowClassName,
   loading,
   loadingLabel = 'Loading…',
+  skeletonRows = 5,
   error,
   onRetry,
   emptyIcon,
@@ -66,6 +69,38 @@ export function DataTable<T>({
   card = true,
   className = '',
 }: DataTableProps<T>) {
+  // Deterministic, organic-looking widths for skeleton cells.
+  const SKELETON_WIDTHS = ['w-28', 'w-20', 'w-32', 'w-16', 'w-24'];
+
+  const skeleton = (
+    <div className="overflow-x-auto" role="status" aria-label={loadingLabel}>
+      <table className="w-full text-left border-collapse" style={{ minWidth }}>
+        <thead>
+          <tr className="border-b border-line bg-surface">
+            {columns.map((col, i) => (
+              <th key={i} className={`${TH_BASE} ${ALIGN[col.align ?? 'left']} ${col.thClassName ?? ''}`}>
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {Array.from({ length: skeletonRows }).map((_, r) => (
+            <tr key={r}>
+              {columns.map((col, i) => (
+                <td key={i} className={`px-5 py-4 ${ALIGN[col.align ?? 'left']}`}>
+                  <div className={col.align === 'right' ? 'flex justify-end' : col.align === 'center' ? 'flex justify-center' : ''}>
+                    <Skeleton className={`h-4 ${SKELETON_WIDTHS[(r + i) % SKELETON_WIDTHS.length]}`} />
+                  </div>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
   const table = (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse" style={{ minWidth }}>
@@ -113,12 +148,12 @@ export function DataTable<T>({
       </div>
     );
   } else if (loading) {
-    body = <Loader label={loadingLabel} />;
+    body = skeleton;
   } else if (data.length === 0) {
     body = empty ? <EmptyState icon={emptyIcon}>{empty}</EmptyState> : <EmptyState icon={emptyIcon}>Nothing to show yet.</EmptyState>;
   } else {
     body = table;
   }
 
-  return <div className={`bg-white rounded-2xl border border-line shadow-card overflow-hidden ${className}`}>{body}</div>;
+  return <div className={`bg-card rounded-2xl border border-line shadow-card overflow-hidden ${className}`}>{body}</div>;
 }

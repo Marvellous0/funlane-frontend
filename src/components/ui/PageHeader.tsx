@@ -47,7 +47,7 @@ export function PageHeader({
   }
 
   return (
-    <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-ink to-brand-dark text-white p-6 sm:p-8 shadow-card">
+    <header className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-navy-light to-brand-dark text-white p-6 sm:p-8 shadow-card">
       <div aria-hidden="true" className="absolute -right-10 -top-10 w-56 h-56 rounded-full bg-white/5" />
       <div aria-hidden="true" className="absolute right-24 bottom-0 w-32 h-32 rounded-full bg-white/5" />
       <div className="relative flex flex-col sm:flex-row sm:items-end sm:justify-between gap-5">
@@ -58,7 +58,7 @@ export function PageHeader({
               {eyebrow}
             </span>
           ) : null}
-          <h1 className="text-3xl font-bold mt-3">{title}</h1>
+          <h1 className="text-3xl font-bold mt-3 text-white">{title}</h1>
           {subtitle ? <p className="text-white/60 text-sm mt-1.5 max-w-md">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex items-center gap-6">{actions}</div> : null}

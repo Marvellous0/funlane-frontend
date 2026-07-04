@@ -12,6 +12,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useHydration } from '@/hooks/useHydration';
 import { homePathFor } from '@/services/auth.service';
 import { ConciergeAssistant } from '../ui/ConciergeAssistant';
+import { CommandPalette } from '../ui/CommandPalette';
 import { FunlaneMark } from '../ui/Logo';
 
 interface DashboardShellProps {
@@ -79,6 +80,7 @@ export function DashboardShell({ role, sections, children }: DashboardShellProps
 
       <SessionTimeout />
       <ConciergeAssistant />
+      <CommandPalette sections={sections} />
     </div>
   );
 }

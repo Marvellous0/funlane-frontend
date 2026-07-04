@@ -1,13 +1,24 @@
 'use client';
 
 import Link from 'next/link';
-import { Briefcase, ShieldPlus, ArrowRight, ShieldCheck, ClipboardList } from 'lucide-react';
+import { Briefcase, ShieldPlus, ArrowRight, ShieldCheck, ClipboardList, Clock, Plane, CheckCircle2 } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
-import { PageHeader } from '@/components/ui';
+import { useRequestList } from '@/hooks/useRequestsLive';
+import { PageHeader, StatCard } from '@/components/ui';
+import { dailyCounts, weekOverWeek } from '@/utils/trend';
 
 export function AdminOverviewContainer() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.name?.split(' ')[0] ?? 'Admin';
+  const { items, loading } = useRequestList('all');
+
+  const pending = items.filter((r) => r.status === 'PENDING').length;
+  const inProgress = items.filter((r) => ['OPTIONS_SENT', 'APPROVED_LOCKED', 'ISSUED'].includes(r.status)).length;
+  const completed = items.filter((r) => r.status === 'COMPLETED').length;
+
+  const volumeSpark = dailyCounts(items, 7);
+  const volumeTrend = weekOverWeek(items);
+  const hasSpark = volumeSpark.some((n) => n > 0);
 
   return (
     <div className="space-y-6">
@@ -17,6 +28,21 @@ export function AdminOverviewContainer() {
         title={`Welcome back, ${firstName}.`}
         subtitle="Manage your team — onboard agents and grant administrator access."
       />
+
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          label="Total requests"
+          value={items.length}
+          icon={ClipboardList}
+          iconTone="brand"
+          loading={loading}
+          sparkline={hasSpark ? volumeSpark : undefined}
+          trend={volumeTrend !== null ? { value: volumeTrend, label: 'vs last week' } : undefined}
+        />
+        <StatCard label="Pending" value={pending} icon={Clock} iconTone="amber" highlight={pending > 0} loading={loading} />
+        <StatCard label="In progress" value={inProgress} icon={Plane} iconTone="blue" loading={loading} />
+        <StatCard label="Completed" value={completed} icon={CheckCircle2} iconTone="green" loading={loading} />
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <ActionCard
@@ -80,7 +106,7 @@ function ActionCard({
   return (
     <Link
       href={href}
-      className="group bg-white rounded-2xl border border-line p-6 shadow-sm hover:border-ink-3 transition-colors flex flex-col"
+      className="group bg-card rounded-2xl border border-line p-6 shadow-sm hover:border-ink-3 transition-colors flex flex-col"
     >
       <span className={`w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${toneClass}`}>
         <Icon className="w-5 h-5" aria-hidden="true" />

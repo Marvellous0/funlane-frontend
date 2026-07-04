@@ -2,15 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Briefcase } from 'lucide-react';
+import { ShieldCheck, Briefcase, Mail, Lock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Formik, Form } from 'formik';
 import { useAuth, type StaffPortal } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useHydration } from '@/hooks/useHydration';
 import { homePathFor } from '@/services/auth.service';
 import { StaffAuthLayout } from '@/components/layout/StaffAuthLayout';
-import { IconMail, IconLock, IconEye, IconEyeOff, IconShield } from '@/components/ui/icons';
-import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
+import { IconShield } from '@/components/ui/icons';
+import { TextField, CheckboxField } from '@/components/form';
 import { staffLoginSchema } from '@/lib/validation/schemas';
 import { getRememberedEmail, rememberEmail, forgetEmail } from '@/lib/rememberMe';
 
@@ -42,6 +43,12 @@ const PORTALS: Record<StaffPortal, PortalMeta> = {
   },
 };
 
+interface StaffLoginValues {
+  email: string;
+  password: string;
+  remember: boolean;
+}
+
 export function StaffLoginContainer({ portal }: { portal: StaffPortal }) {
   const meta = PORTALS[portal];
 
@@ -50,28 +57,21 @@ export function StaffLoginContainer({ portal }: { portal: StaffPortal }) {
   const hydrated = useHydration();
   const router = useRouter();
 
-  const [email, setEmail] = useState(() => getRememberedEmail());
-  const [password, setPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [remember, setRemember] = useState(() => Boolean(getRememberedEmail()));
-  const [errors, setErrors] = useState<FieldErrors<{ email: string; password: string }>>({});
+  const [initialValues] = useState<StaffLoginValues>(() => ({
+    email: getRememberedEmail(),
+    password: '',
+    remember: Boolean(getRememberedEmail()),
+  }));
 
   // Already authenticated? Skip the form and go to the dashboard.
   useEffect(() => {
     if (hydrated && user) router.replace(homePathFor(user.role));
   }, [hydrated, user, router]);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const { errors: invalid } = await validateSchema(staffLoginSchema, { email, password });
-    if (invalid) {
-      setErrors(invalid);
-      return;
-    }
-    setErrors({});
-    if (remember) rememberEmail(email.trim());
+  async function onSubmit(values: StaffLoginValues) {
+    if (values.remember) rememberEmail(values.email.trim());
     else forgetEmail();
-    await signInStaff(portal, { email, password });
+    await signInStaff(portal, { email: values.email, password: values.password });
   }
 
   return (
@@ -83,78 +83,45 @@ export function StaffLoginContainer({ portal }: { portal: StaffPortal }) {
       altHref={meta.alt.href}
       altLabel={meta.alt.label}
     >
-      <form onSubmit={onSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="staff-email" className="block text-sm font-medium text-ink mb-1.5">
-            Email address
-          </label>
-          <div className="relative">
-            <IconMail className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              id="staff-email"
-              type="email"
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="name@funlane.com"
-              aria-invalid={Boolean(errors.email)}
-              className="auth-field"
-            />
-          </div>
-          {errors.email && <p className="mt-1.5 text-xs text-red-dark">{errors.email}</p>}
-        </div>
+      <Formik initialValues={initialValues} validationSchema={staffLoginSchema} onSubmit={onSubmit}>
+        <Form noValidate className="space-y-4">
+          <TextField
+            name="email"
+            type="email"
+            label="Email address"
+            placeholder="name@funlane.com"
+            icon={Mail}
+            autoComplete="email"
+            id="staff-email"
+          />
 
-        <div>
-          <label htmlFor="staff-password" className="block text-sm font-medium text-ink mb-1.5">
-            Password
-          </label>
-          <div className="relative">
-            <IconLock className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              id="staff-password"
-              type={showPw ? 'text' : 'password'}
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+          <div>
+            <TextField
+              name="password"
+              type="password"
+              label="Password"
               placeholder="••••••••"
-              required
-              className="auth-field pr-11"
+              icon={Lock}
+              autoComplete="current-password"
+              id="staff-password"
             />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              aria-label={showPw ? 'Hide password' : 'Show password'}
-              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-ink-3 hover:text-ink hover:bg-surface transition-colors"
-            >
-              {showPw ? <IconEyeOff className="w-5 h-5" /> : <IconEye className="w-5 h-5" />}
-            </button>
+            <CheckboxField name="remember" className="mt-3">Remember Me</CheckboxField>
           </div>
-          {errors.password && <p className="mt-1.5 text-xs text-red-dark">{errors.password}</p>}
 
-          <label className="mt-3 flex items-center gap-2 text-sm text-ink-2 select-none cursor-pointer">
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(e) => setRemember(e.target.checked)}
-              className="w-4 h-4 rounded border-line text-sky-500 focus:ring-sky-400"
-            />
-            Remember Me
-          </label>
-        </div>
+          <div className="auth-banner">
+            <IconShield className="w-5 h-5 text-blue shrink-0 mt-0.5" />
+            <p className="text-xs leading-relaxed">
+              <span className="font-semibold text-ink">Restricted access.</span> This portal is for
+              authorized {portal === 'admin' ? 'administrators' : 'agents'} only. Activity is logged
+              under NDPA-compliant controls.
+            </p>
+          </div>
 
-        <div className="auth-banner">
-          <IconShield className="w-5 h-5 text-blue shrink-0 mt-0.5" />
-          <p className="text-xs leading-relaxed">
-            <span className="font-semibold text-ink">Restricted access.</span> This portal is for
-            authorized {portal === 'admin' ? 'administrators' : 'agents'} only. Activity is logged
-            under NDPA-compliant controls.
-          </p>
-        </div>
-
-        <button type="submit" disabled={loading} className="auth-btn">
-          {loading ? 'Signing in…' : meta.cta}
-        </button>
-      </form>
+          <button type="submit" disabled={loading} className="auth-btn">
+            {loading ? 'Signing in…' : meta.cta}
+          </button>
+        </Form>
+      </Formik>
 
       <p className="mt-6 text-center text-sm text-ink-3">
         Forgot your password?{' '}

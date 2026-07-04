@@ -1,14 +1,14 @@
 'use client';
 
 import Link from 'next/link';
-import type { ElementType } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWallet } from '@/hooks/useWallet';
 import { useRequestList } from '@/hooks/useRequestsLive';
 import { RequestTable } from '@/components/RequestTable';
-import { EmptyState, Loader, PageHeader } from '@/components/ui';
+import { EmptyState, Loader, PageHeader, StatCard } from '@/components/ui';
 import { fmtNaira, fmtDate } from '@/utils/format';
 import { routeText } from '@/utils/request.utils';
+import { dailyCounts, weekOverWeek } from '@/utils/trend';
 import { Plus, CreditCard, Lock, Plane, Bell, CheckCircle2 } from 'lucide-react';
 
 const clientHref = (id: string) => `/client/requests/${id}`;
@@ -21,6 +21,10 @@ export function ClientDashboardContainer() {
   const active = reqs.filter((r) => r.status !== 'COMPLETED' && r.status !== 'CANCELLED').length;
   const needsReview = reqs.filter((r) => r.status === 'OPTIONS_SENT').length;
   const reviewReq = reqs.find((r) => r.status === 'OPTIONS_SENT');
+
+  const requestSpark = dailyCounts(reqs, 7);
+  const requestTrend = weekOverWeek(reqs);
+  const hasSpark = requestSpark.some((n) => n > 0);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -36,10 +40,17 @@ export function ClientDashboardContainer() {
       />
 
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Available balance" value={fmtNaira(wallet?.availableBalance ?? 0)} icon={CreditCard} />
-        <StatCard label="Locked funds" value={fmtNaira(wallet?.lockedBalance ?? 0)} icon={Lock} />
-        <StatCard label="Active requests" value={active} icon={Plane} />
-        <StatCard label="Awaiting review" value={needsReview} icon={Bell} highlight={needsReview > 0} />
+        <StatCard label="Available balance" value={fmtNaira(wallet?.availableBalance ?? 0)} icon={CreditCard} iconTone="green" />
+        <StatCard label="Locked funds" value={fmtNaira(wallet?.lockedBalance ?? 0)} icon={Lock} iconTone="ink" />
+        <StatCard
+          label="Active requests"
+          value={active}
+          icon={Plane}
+          iconTone="brand"
+          sparkline={hasSpark ? requestSpark : undefined}
+          trend={requestTrend !== null ? { value: requestTrend, label: 'vs last week' } : undefined}
+        />
+        <StatCard label="Awaiting review" value={needsReview} icon={Bell} iconTone="purple" highlight={needsReview > 0} />
       </section>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
@@ -49,7 +60,7 @@ export function ClientDashboardContainer() {
             <Link href="/client/requests" className="text-sm font-medium text-brand hover:underline">View all</Link>
           </div>
 
-          <div className="bg-white rounded-2xl border border-line shadow-card overflow-hidden">
+          <div className="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
             {loading ? (
               <Loader />
             ) : reqs.length ? (
@@ -69,7 +80,7 @@ export function ClientDashboardContainer() {
 
         <aside className="space-y-4">
           {reviewReq ? (
-            <div className="bg-white rounded-2xl border border-line shadow-card p-5">
+            <div className="bg-card rounded-2xl border border-line shadow-card p-5">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-purple bg-purple-soft px-2.5 py-1 rounded-full">Action needed</span>
               <h3 className="font-semibold text-ink text-base mt-3">{routeText(reviewReq)}</h3>
               <p className="text-sm text-ink-3 mt-1">{fmtDate(reviewReq.departureDate)} · {reviewReq.ref}</p>
@@ -79,14 +90,14 @@ export function ClientDashboardContainer() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-line shadow-card p-6 text-center">
+            <div className="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
               <CheckCircle2 aria-hidden="true" className="w-8 h-8 text-green mx-auto mb-3" />
               <h3 className="font-semibold text-ink text-sm">You&apos;re all caught up</h3>
               <p className="text-ink-3 text-sm mt-1.5 leading-relaxed">No requests need your attention right now.</p>
             </div>
           )}
 
-          <div className="bg-white rounded-2xl border border-line shadow-card p-5">
+          <div className="bg-card rounded-2xl border border-line shadow-card p-5">
             <h3 className="font-semibold text-ink text-sm mb-3">How it works</h3>
             <ol className="space-y-3">
               {[
@@ -104,18 +115,6 @@ export function ClientDashboardContainer() {
           </div>
         </aside>
       </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value, icon: Icon, highlight = false }: { label: string; value: string | number; icon: ElementType; highlight?: boolean }) {
-  return (
-    <div className={`bg-white p-4 rounded-2xl border shadow-card ${highlight ? 'border-brand/40 ring-1 ring-brand/10' : 'border-line'}`}>
-      <div className="flex items-center gap-2 mb-2">
-        <Icon aria-hidden="true" className="w-4 h-4 text-ink-3" />
-        <span className="text-[11px] font-medium text-ink-3 uppercase tracking-wide">{label}</span>
-      </div>
-      <div className="text-xl font-bold text-ink">{value}</div>
     </div>
   );
 }

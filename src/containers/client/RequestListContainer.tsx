@@ -37,7 +37,7 @@ export function RequestListContainer({ mode = 'all' }: RequestListContainerProps
         subtitle={subtitle}
       />
 
-      <div className="bg-white rounded-2xl border border-line shadow-card overflow-hidden">
+      <div className="bg-card rounded-2xl border border-line shadow-card overflow-hidden">
         {error ? (
           <div className="p-8 text-center">
             <AlertTriangle aria-hidden="true" className="w-8 h-8 text-amber mx-auto mb-3" />

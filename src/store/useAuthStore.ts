@@ -10,6 +10,7 @@ interface AuthState {
   token: string | null;
   hydrated: boolean;
   login: (user: AuthUser, token: string) => void;
+  updateUser: (patch: Partial<Pick<AuthUser, 'name'>>) => void;
   logout: () => void;
   setHydrated: (v: boolean) => void;
 }
@@ -25,6 +26,13 @@ export const useAuthStore = create<AuthState>()(
         setToken(token);
         set({ user, token });
       },
+      updateUser: (patch) =>
+        set((s) => {
+          if (!s.user) return {};
+          const user = { ...s.user, ...patch };
+          setAuthCookie(user);
+          return { user };
+        }),
       logout: () => {
         clearAuthCookie();
         clearToken();

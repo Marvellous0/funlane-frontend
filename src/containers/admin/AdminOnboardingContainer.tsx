@@ -1,16 +1,19 @@
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, ShieldPlus, Check, Sparkles, Mail, UsersRound } from 'lucide-react';
+import { Briefcase, ShieldPlus, Check, Sparkles, Mail, UsersRound, User, Phone, Lock } from 'lucide-react';
+import { Formik, Form, type FormikHelpers } from 'formik';
 import { authApi, ApiError } from '@/api';
-import { IconUser, IconMail, IconPhone, IconLock, IconEye, IconEyeOff } from '@/components/ui/icons';
 import { Spinner, PageHeader } from '@/components/ui';
+import { TextField } from '@/components/form';
 import { toast } from 'react-toastify';
-import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
 import { onboardAgentSchema, createAdminSchema } from '@/lib/validation/schemas';
 
-type AgentFields = { name: string; email: string; phone: string };
-type AdminFields = { name: string; email: string; phone: string; password: string };
+interface AgentValues { name: string; email: string; phone: string }
+interface AdminValues { name: string; email: string; phone: string; password: string }
+
+const agentInitialValues: AgentValues = { name: '', email: '', phone: '' };
+const adminInitialValues: AdminValues = { name: '', email: '', phone: '', password: '' };
 
 interface OnboardedEntry {
   id: string;
@@ -23,84 +26,34 @@ export function AdminOnboardingContainer() {
   const [recent, setRecent] = useState<OnboardedEntry[]>([]);
   const [mode, setMode] = useState<'agent' | 'admin'>('agent');
 
-  // Onboard agent
-  const [agentName, setAgentName] = useState('');
-  const [agentEmail, setAgentEmail] = useState('');
-  const [agentPhone, setAgentPhone] = useState('');
-  const [agentLoading, setAgentLoading] = useState(false);
-  const [agentErrors, setAgentErrors] = useState<FieldErrors<AgentFields>>({});
-
-  // Create admin
-  const [adminName, setAdminName] = useState('');
-  const [adminEmail, setAdminEmail] = useState('');
-  const [adminPhone, setAdminPhone] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [adminLoading, setAdminLoading] = useState(false);
-  const [adminErrors, setAdminErrors] = useState<FieldErrors<AdminFields>>({});
-
-  async function onOnboardAgent(e: React.FormEvent) {
-    e.preventDefault();
-    const { errors: invalid } = await validateSchema(onboardAgentSchema, {
-      name: agentName,
-      email: agentEmail,
-      phone: agentPhone,
-    });
-    if (invalid) {
-      setAgentErrors(invalid);
-      return;
-    }
-    setAgentErrors({});
-    setAgentLoading(true);
+  async function onOnboardAgent(values: AgentValues, helpers: FormikHelpers<AgentValues>) {
     try {
       const { agent } = await authApi.createAgent({
-        name: agentName.trim(),
-        email: agentEmail.trim(),
-        phone: agentPhone.trim(),
+        name: values.name.trim(),
+        email: values.email.trim(),
+        phone: values.phone.trim(),
       });
       toast.success(`${agent.name} has been onboarded — an invite is on the way.`);
       setRecent((r) => [{ id: agent.id, kind: 'agent', name: agent.name, email: agent.email }, ...r]);
-      setAgentName('');
-      setAgentEmail('');
-      setAgentPhone('');
+      helpers.resetForm();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not onboard the agent. Please try again.');
-    } finally {
-      setAgentLoading(false);
     }
   }
 
-  async function onCreateAdmin(e: React.FormEvent) {
-    e.preventDefault();
-    const { errors: invalid } = await validateSchema(createAdminSchema, {
-      name: adminName,
-      email: adminEmail,
-      phone: adminPhone,
-      password: adminPassword,
-    });
-    if (invalid) {
-      setAdminErrors(invalid);
-      return;
-    }
-    setAdminErrors({});
-    setAdminLoading(true);
+  async function onCreateAdmin(values: AdminValues, helpers: FormikHelpers<AdminValues>) {
     try {
       const { admin } = await authApi.createAdmin({
-        name: adminName.trim(),
-        email: adminEmail.trim(),
-        phone: adminPhone.trim(),
-        password: adminPassword,
+        name: values.name.trim(),
+        email: values.email.trim(),
+        phone: values.phone.trim(),
+        password: values.password,
       });
       toast.success(`${admin.name} now has administrator access.`);
       setRecent((r) => [{ id: admin.id, kind: 'admin', name: admin.name, email: admin.email }, ...r]);
-      setAdminName('');
-      setAdminEmail('');
-      setAdminPhone('');
-      setAdminPassword('');
+      helpers.resetForm();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not create the admin. Please try again.');
-    } finally {
-      setAdminLoading(false);
     }
   }
 
@@ -123,7 +76,7 @@ export function AdminOnboardingContainer() {
 
       <div className="grid lg:grid-cols-5 gap-6 items-start">
         {/* Onboarding card */}
-        <section className="lg:col-span-3 bg-white rounded-2xl border border-line shadow-card overflow-hidden">
+        <section className="lg:col-span-3 bg-card rounded-2xl border border-line shadow-card overflow-hidden">
           {/* Role switcher */}
           <div className="p-5 sm:p-6 border-b border-line">
             <div className="inline-flex w-full sm:w-auto p-1 bg-surface border border-line rounded-xl">
@@ -136,55 +89,34 @@ export function AdminOnboardingContainer() {
             {/* Form pane */}
             <div className="p-5 sm:p-6">
               {isAgent ? (
-                <form onSubmit={onOnboardAgent} className="space-y-4" key="agent">
-                  <Field id="agent-name" label="Full name" icon={IconUser} error={agentErrors.name}>
-                    <input id="agent-name" type="text" value={agentName} onChange={(e) => setAgentName(e.target.value)} placeholder="Chidi Eze" className="auth-field" />
-                  </Field>
-                  <Field id="agent-email" label="Email address" icon={IconMail} error={agentErrors.email}>
-                    <input id="agent-email" type="email" value={agentEmail} onChange={(e) => setAgentEmail(e.target.value)} placeholder="agent@funlane.com" className="auth-field" />
-                  </Field>
-                  <Field id="agent-phone" label="Phone number" icon={IconPhone} error={agentErrors.phone}>
-                    <input id="agent-phone" type="tel" value={agentPhone} onChange={(e) => setAgentPhone(e.target.value)} placeholder="+234 800 000 0000" className="auth-field" />
-                  </Field>
-                  <button type="submit" disabled={agentLoading} className="auth-btn">
-                    {agentLoading && <Spinner size="sm" />}
-                    {agentLoading ? 'Sending invite…' : 'Onboard agent'}
-                  </button>
-                </form>
+                <Formik key="agent" initialValues={agentInitialValues} validationSchema={onboardAgentSchema} onSubmit={onOnboardAgent}>
+                  {({ isSubmitting }) => (
+                    <Form noValidate className="space-y-4">
+                      <TextField name="name" label="Full name" placeholder="Chidi Eze" icon={User} id="agent-name" />
+                      <TextField name="email" type="email" label="Email address" placeholder="agent@funlane.com" icon={Mail} id="agent-email" />
+                      <TextField name="phone" type="tel" label="Phone number" placeholder="+234 800 000 0000" icon={Phone} id="agent-phone" />
+                      <button type="submit" disabled={isSubmitting} className="auth-btn">
+                        {isSubmitting && <Spinner size="sm" />}
+                        {isSubmitting ? 'Sending invite…' : 'Onboard agent'}
+                      </button>
+                    </Form>
+                  )}
+                </Formik>
               ) : (
-                <form onSubmit={onCreateAdmin} className="space-y-4" key="admin">
-                  <Field id="new-admin-name" label="Full name" icon={IconUser} error={adminErrors.name}>
-                    <input id="new-admin-name" type="text" value={adminName} onChange={(e) => setAdminName(e.target.value)} placeholder="Ada Obi" className="auth-field" />
-                  </Field>
-                  <Field id="new-admin-email" label="Email address" icon={IconMail} error={adminErrors.email}>
-                    <input id="new-admin-email" type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)} placeholder="admin2@funlane.com" className="auth-field" />
-                  </Field>
-                  <Field id="new-admin-phone" label="Phone number" icon={IconPhone} error={adminErrors.phone}>
-                    <input id="new-admin-phone" type="tel" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)} placeholder="+234 800 000 0000" className="auth-field" />
-                  </Field>
-                  <Field id="new-admin-password" label="Temporary password" icon={IconLock} error={adminErrors.password}>
-                    <input
-                      id="new-admin-password"
-                      type={showPw ? 'text' : 'password'}
-                      value={adminPassword}
-                      onChange={(e) => setAdminPassword(e.target.value)}
-                      placeholder="At least 8 characters"
-                      className="auth-field pr-11"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPw((v) => !v)}
-                      aria-label={showPw ? 'Hide password' : 'Show password'}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-ink-3 hover:text-ink hover:bg-surface transition-colors"
-                    >
-                      {showPw ? <IconEyeOff className="w-5 h-5" /> : <IconEye className="w-5 h-5" />}
-                    </button>
-                  </Field>
-                  <button type="submit" disabled={adminLoading} className="auth-btn">
-                    {adminLoading && <Spinner size="sm" />}
-                    {adminLoading ? 'Creating…' : 'Create admin'}
-                  </button>
-                </form>
+                <Formik key="admin" initialValues={adminInitialValues} validationSchema={createAdminSchema} onSubmit={onCreateAdmin}>
+                  {({ isSubmitting }) => (
+                    <Form noValidate className="space-y-4">
+                      <TextField name="name" label="Full name" placeholder="Ada Obi" icon={User} id="new-admin-name" />
+                      <TextField name="email" type="email" label="Email address" placeholder="admin2@funlane.com" icon={Mail} id="new-admin-email" />
+                      <TextField name="phone" type="tel" label="Phone number" placeholder="+234 800 000 0000" icon={Phone} id="new-admin-phone" />
+                      <TextField name="password" type="password" label="Temporary password" placeholder="At least 8 characters" icon={Lock} autoComplete="new-password" id="new-admin-password" />
+                      <button type="submit" disabled={isSubmitting} className="auth-btn">
+                        {isSubmitting && <Spinner size="sm" />}
+                        {isSubmitting ? 'Creating…' : 'Create admin'}
+                      </button>
+                    </Form>
+                  )}
+                </Formik>
               )}
             </div>
 
@@ -194,7 +126,7 @@ export function AdminOnboardingContainer() {
               className={`relative overflow-hidden p-6 text-white animate-fade-in ${
                 isAgent
                   ? 'bg-gradient-to-br from-blue to-brand-dark'
-                  : 'bg-gradient-to-br from-navy via-ink to-brand-dark'
+                  : 'bg-gradient-to-br from-navy via-navy-light to-brand-dark'
               }`}
             >
               <div aria-hidden="true" className="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10" />
@@ -235,7 +167,7 @@ export function AdminOnboardingContainer() {
         </section>
 
         {/* Recent additions rail */}
-        <aside className="lg:col-span-2 bg-white rounded-2xl border border-line shadow-card p-5 sm:p-6">
+        <aside className="lg:col-span-2 bg-card rounded-2xl border border-line shadow-card p-5 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <UsersRound className="w-4 h-4 text-ink-3" aria-hidden="true" />
             <h2 className="font-semibold text-ink">Added this session</h2>
@@ -253,7 +185,7 @@ export function AdminOnboardingContainer() {
             <ul className="space-y-2.5">
               {recent.map((entry) => (
                 <li key={entry.id} className="flex items-center gap-3 p-3 rounded-xl border border-line hover:bg-surface/60 transition-colors animate-fade-in">
-                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${entry.kind === 'admin' ? 'bg-ink text-white' : 'bg-blue text-white'}`}>
+                  <div className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${entry.kind === 'admin' ? 'bg-ink text-card' : 'bg-blue text-white'}`}>
                     {entry.name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?'}
                   </div>
                   <div className="min-w-0">
@@ -290,35 +222,10 @@ function RoleToggle({
       onClick={onClick}
       aria-pressed={active}
       className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 h-10 rounded-lg text-sm font-semibold transition-colors ${
-        active ? 'bg-white text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
+        active ? 'bg-card text-ink shadow-sm' : 'text-ink-3 hover:text-ink'
       }`}
     >
       <Icon className="w-4 h-4" aria-hidden="true" /> {label}
     </button>
-  );
-}
-
-function Field({
-  id,
-  label,
-  icon: Icon,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  icon: typeof IconUser;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label htmlFor={id} className="block text-sm font-medium text-ink mb-1.5">{label}</label>
-      <div className="relative">
-        <Icon className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        {children}
-      </div>
-      {error && <p className="mt-1.5 text-xs text-red-dark">{error}</p>}
-    </div>
   );
 }

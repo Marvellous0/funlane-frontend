@@ -3,52 +3,47 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Formik, Form } from 'formik';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/api';
-import { IconLock, IconArrowLeft, IconArrowRight, IconEye, IconEyeOff } from '@/components/ui';
-import { Check } from 'lucide-react';
+import { IconArrowLeft, IconArrowRight } from '@/components/ui';
+import { Check, Lock } from 'lucide-react';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { toast } from 'react-toastify';
-import { validateSchema } from '@/lib/validation/validate';
+import { TextField } from '@/components/form';
 import { resetPasswordSchema } from '@/lib/validation/schemas';
+
+interface ResetValues {
+  password: string;
+  confirm: string;
+}
+
+function strengthOf(password: string): { label: string; color: string; width: string } {
+  if (password.length < 4) return { label: 'Too short', color: 'bg-red', width: 'w-1/4' };
+  if (password.length < 8) return { label: 'Weak', color: 'bg-amber', width: 'w-2/4' };
+  if (/(?=.*[A-Z])(?=.*\d)/.test(password)) return { label: 'Strong', color: 'bg-green', width: 'w-full' };
+  return { label: 'Medium', color: 'bg-amber', width: 'w-3/4' };
+}
 
 export function ResetPasswordContainer() {
   const router = useRouter();
   const { resetPassword } = useAuth();
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [showPw, setShowPw] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
-  const [error, setError] = useState('');
+  const [tokenError, setTokenError] = useState('');
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
     setToken(new URLSearchParams(window.location.search).get('token'));
   }, []);
 
-  function strength(): { label: string; color: string; width: string } {
-    if (password.length < 4) return { label: 'Too short', color: 'bg-red', width: 'w-1/4' };
-    if (password.length < 8) return { label: 'Weak', color: 'bg-amber', width: 'w-2/4' };
-    if (/(?=.*[A-Z])(?=.*\d)/.test(password)) return { label: 'Strong', color: 'bg-green', width: 'w-full' };
-    return { label: 'Medium', color: 'bg-amber', width: 'w-3/4' };
-  }
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(values: ResetValues) {
     if (!token) {
-      setError('This reset link is invalid or incomplete. Please request a new one.');
+      setTokenError('This reset link is invalid or incomplete. Please request a new one.');
       return;
     }
-    const { errors: invalid } = await validateSchema(resetPasswordSchema, { password, confirm });
-    if (invalid) {
-      setError(invalid.password ?? invalid.confirm ?? 'Please check your password.');
-      return;
-    }
-    setError('');
-    setLoading(true);
+    setTokenError('');
     try {
-      const response = await resetPassword(token, password);
+      const response = await resetPassword(token, values.password);
 
       toast.success(response.message);
 
@@ -63,12 +58,8 @@ export function ResetPasswordContainer() {
       setDone(true);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not reset your password. Please try again.');
-    } finally {
-      setLoading(false);
     }
   }
-
-  const s = strength();
 
   return (
     <AuthLayout title='New Security, New Strength.' description='The gold standard in corporate travel and logistics. Your precision-engineered portal ensures every movement is managed with absolute transparency.'>
@@ -92,68 +83,53 @@ export function ResetPasswordContainer() {
             <h1 className="text-2xl font-bold text-ink mb-2">Reset password</h1>
             <p className="text-ink-3 text-sm mb-6 leading-relaxed">Choose a strong new password for your account.</p>
 
-            <form onSubmit={onSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="new-password" className="block text-sm font-medium text-ink mb-1.5">New password</label>
-                <div className="relative">
-                  <IconLock className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    id="new-password"
-                    type={showPw ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setError('');
-                    }}
-                    placeholder="Enter new password"
-                    className="auth-field pr-11"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    aria-label={showPw ? 'Hide password' : 'Show password'}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-lg text-ink-3 hover:text-ink hover:bg-surface transition-colors"
-                  >
-                    {showPw ? <IconEyeOff className="w-5 h-5" /> : <IconEye className="w-5 h-5" />}
-                  </button>
-                </div>
-                {password && (
-                  <div className="mt-2">
-                    <div className="h-1.5 bg-line rounded-full overflow-hidden">
-                      <div className={`h-full ${s.color} ${s.width} rounded-full transition-all duration-300`} />
+            <Formik initialValues={{ password: '', confirm: '' }} validationSchema={resetPasswordSchema} onSubmit={onSubmit}>
+              {({ values, isSubmitting }) => {
+                const s = strengthOf(values.password);
+                return (
+                  <Form noValidate className="space-y-4">
+                    <div>
+                      <TextField
+                        name="password"
+                        type="password"
+                        label="New password"
+                        placeholder="Enter new password"
+                        icon={Lock}
+                        autoComplete="new-password"
+                        id="new-password"
+                      />
+                      {values.password && (
+                        <div className="mt-2">
+                          <div className="h-1.5 bg-line rounded-full overflow-hidden">
+                            <div className={`h-full ${s.color} ${s.width} rounded-full transition-all duration-300`} />
+                          </div>
+                          <div className="text-xs text-ink-3 mt-1">{s.label}</div>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-ink-3 mt-1">{s.label}</div>
-                  </div>
-                )}
-              </div>
 
-              <div>
-                <label htmlFor="confirm-password" className="block text-sm font-medium text-ink mb-1.5">Confirm password</label>
-                <div className="relative">
-                  <IconLock className="w-5 h-5 text-ink-3 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    id="confirm-password"
-                    type={showPw ? 'text' : 'password'}
-                    value={confirm}
-                    onChange={(e) => {
-                      setConfirm(e.target.value);
-                      setError('');
-                    }}
-                    placeholder="Confirm new password"
-                    className="auth-field"
-                  />
-                </div>
-              </div>
+                    <TextField
+                      name="confirm"
+                      type="password"
+                      label="Confirm password"
+                      placeholder="Confirm new password"
+                      icon={Lock}
+                      autoComplete="new-password"
+                      id="confirm-password"
+                    />
 
-              {error && (
-                <div className="bg-red-soft text-red-dark rounded-lg px-4 py-3 text-sm font-medium animate-slide-up">{error}</div>
-              )}
+                    {tokenError && (
+                      <div className="bg-red-soft text-red-dark rounded-lg px-4 py-3 text-sm font-medium animate-slide-up">{tokenError}</div>
+                    )}
 
-              <button type="submit" disabled={loading} className="auth-btn">
-                {loading ? 'Resetting…' : 'Reset password'}
-                {!loading && <IconArrowRight className="w-4 h-4" />}
-              </button>
-            </form>
+                    <button type="submit" disabled={isSubmitting} className="auth-btn">
+                      {isSubmitting ? 'Resetting…' : 'Reset password'}
+                      {!isSubmitting && <IconArrowRight className="w-4 h-4" />}
+                    </button>
+                  </Form>
+                );
+              }}
+            </Formik>
 
             <Link
               href="/login"

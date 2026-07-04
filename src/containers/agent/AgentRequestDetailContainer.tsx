@@ -2,24 +2,32 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { Formik, Form, type FormikHelpers } from 'formik';
 import { useRequestDetail } from '@/hooks/useRequestsLive';
 import { StatusBadge, ProgressSteps, Timeline, Modal, EmptyState, Loader } from '@/components/ui';
 import { AIRLINES } from '@/lib/constants';
-import { validateSchema, type FieldErrors } from '@/lib/validation/validate';
 import { quoteOptionSchema } from '@/lib/validation/schemas';
 import { fmtNaira, fmtDate, fmtDateTime, fmtDepartTime, initials } from '@/utils/format';
 import { routeText } from '@/utils/request.utils';
-import type { AddQuoteOptionPayload, HistoryEntry } from '@/interface';
+import type { HistoryEntry } from '@/interface';
 import type { RequestVM } from '@/services/requestView';
+import { TextField, SelectField, DateTimeField } from '@/components/form';
 import {
   HelpCircle, Send, Lock, Ticket, ChevronLeft, Plane, Undo2,
   Plus, ShieldCheck, CheckCircle2, FileText, Paperclip, X, RefreshCw, Hand,
+  Tag, Banknote, Info,
 } from 'lucide-react';
 
-const modalFieldClass = 'w-full px-3.5 py-2.5 bg-surface border border-line rounded-lg text-sm text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-colors';
-const modalLabelClass = 'block text-[11px] font-semibold text-ink-3 uppercase tracking-wide mb-1.5';
+/** Price stays a string in the form; yup casts it on validate, we cast on submit. */
+interface QuoteDraftValues {
+  airline: string;
+  label: string;
+  departureTime: string;
+  price: string;
+  details: string;
+}
 
-const blankDraft = (): AddQuoteOptionPayload => ({ airline: AIRLINES[0], label: '', departureTime: '', price: 0, details: '' });
+const blankDraft = (): QuoteDraftValues => ({ airline: AIRLINES[0], label: '', departureTime: '', price: '', details: '' });
 
 function synthTimeline(r: RequestVM): HistoryEntry[] {
   const items: HistoryEntry[] = [{ ts: r.createdAt, text: 'Request submitted by client' }];
@@ -32,8 +40,6 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
   const { request: r, loading, error, busy, refresh, claim, addOption, removeOption, sendOptions, complete, uploadTicket } = useRequestDetail(id);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [draft, setDraft] = useState<AddQuoteOptionPayload>(blankDraft());
-  const [optErrors, setOptErrors] = useState<FieldErrors<AddQuoteOptionPayload>>({});
   const [ticketFile, setTicketFile] = useState<File | null>(null);
   const [authorized, setAuthorized] = useState(false);
 
@@ -50,21 +56,17 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
   );
   if (!r) return <EmptyState icon={HelpCircle}>Request not found.</EmptyState>;
 
-  async function commitOption() {
-    const { values, errors } = await validateSchema(quoteOptionSchema, draft);
-    if (errors || !values) {
-      setOptErrors(errors ?? {});
-      return;
-    }
-    setOptErrors({});
+  async function commitOption(values: QuoteDraftValues, helpers: FormikHelpers<QuoteDraftValues>) {
     // The backend expects an ISO datetime; the picker gives local "YYYY-MM-DDTHH:mm".
     const ok = await addOption({
-      ...draft,
-      price: Number(draft.price),
-      departureTime: new Date(draft.departureTime).toISOString(),
+      airline: values.airline,
+      label: values.label,
+      details: values.details,
+      price: Number(values.price),
+      departureTime: new Date(values.departureTime).toISOString(),
     });
     if (ok) {
-      setDraft(blankDraft());
+      helpers.resetForm();
       setAddOpen(false);
     }
   }
@@ -81,7 +83,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
         <ChevronLeft aria-hidden="true" className="w-4 h-4" /> Back to queue
       </Link>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
           <Plane className="w-6 h-6" />
         </div>
@@ -94,7 +96,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card p-5 overflow-x-auto">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-5 overflow-x-auto">
         <ProgressSteps status={r.status} />
       </div>
 
@@ -112,7 +114,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
         <div className="lg:col-span-2 space-y-6">
           {/* --- Status-driven action panel --- */}
           {r.status === 'PENDING' && !r.assignedAgentId && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6 text-center">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
               <Hand aria-hidden="true" className="w-8 h-8 text-brand mx-auto mb-3" />
               <h2 className="text-lg font-semibold text-ink">Claim this request</h2>
               <p className="text-sm text-ink-3 mt-1 mb-4">Claim it to start building a quotation for the client.</p>
@@ -123,7 +125,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
           )}
 
           {r.status === 'PENDING' && r.assignedAgentId && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h2 className="text-lg font-semibold text-ink">Build quotation</h2>
@@ -138,7 +140,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
                 {r.quoteOptions.map((o) => (
                   <div key={o.id} className="flex items-center justify-between p-4 bg-surface rounded-xl border border-line">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-line flex items-center justify-center text-xs font-semibold text-ink-2">{initials(o.airline)}</div>
+                      <div className="w-10 h-10 rounded-lg bg-card border border-line flex items-center justify-center text-xs font-semibold text-ink-2">{initials(o.airline)}</div>
                       <div>
                         <div className="text-sm font-medium text-ink">{o.airline} <span className="text-[11px] text-ink-3 ml-1">{o.label}</span></div>
                         <div className="text-xs text-ink-3 mt-0.5">Departs {fmtDepartTime(o.departureTime)}{o.details ? ` · ${o.details}` : ''}</div>
@@ -165,7 +167,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
           )}
 
           {r.status === 'OPTIONS_SENT' && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <span className="inline-flex items-center text-[11px] font-semibold uppercase tracking-wide text-purple bg-purple-soft px-2.5 py-1 rounded-full mb-5">Awaiting client review</span>
               <div className="space-y-2.5">
                 {r.quoteOptions.map((o) => (
@@ -192,7 +194,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
           )}
 
           {r.status === 'APPROVED_LOCKED' && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6 animate-scale-in">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6 animate-scale-in">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-green-dark bg-green-soft px-2.5 py-1 rounded-full mb-5">
                 <Lock aria-hidden="true" className="w-3 h-3" /> Funds locked
               </span>
@@ -221,7 +223,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
           )}
 
           {r.status === 'ISSUED' && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-blue-dark bg-blue-soft px-2.5 py-1 rounded-full mb-5">
                 <Ticket aria-hidden="true" className="w-3 h-3" /> Ticket issued
               </span>
@@ -239,7 +241,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
           )}
 
           {(r.status === 'COMPLETED' || r.status === 'CANCELLED') && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <span className={`inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide px-2.5 py-1 rounded-full mb-4 ${r.status === 'COMPLETED' ? 'text-green-dark bg-green-soft' : 'text-red-dark bg-red-soft'}`}>
                 {r.status === 'COMPLETED' ? <CheckCircle2 className="w-3 h-3" /> : <X className="w-3 h-3" />} {r.status === 'COMPLETED' ? 'Completed' : 'Cancelled'}
               </span>
@@ -252,7 +254,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
             </section>
           )}
 
-          <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+          <section className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h2 className="text-lg font-semibold text-ink mb-5">Request details</h2>
             <div className="grid sm:grid-cols-2 gap-5">
               <KV label="Itinerary" value={routeText(r)} />
@@ -283,45 +285,31 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
         </aside>
       </div>
 
-      <Modal open={addOpen} title="Add travel option" onClose={() => setAddOpen(false)}
-        footer={
-          <div className="flex gap-3 w-full">
-            <button className="flex-1 py-2.5 bg-white border border-line text-ink font-medium text-sm rounded-lg hover:bg-surface transition-colors" onClick={() => setAddOpen(false)}>Cancel</button>
-            <button className="flex-1 py-2.5 bg-brand text-white font-semibold text-sm rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50" onClick={commitOption} disabled={busy}>Add option</button>
-          </div>
-        }>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="opt-airline" className={modalLabelClass}>Airline</label>
-              <select id="opt-airline" className={modalFieldClass} value={draft.airline} onChange={(e) => setDraft({ ...draft, airline: e.target.value })}>
-                {AIRLINES.filter((a) => a !== 'No preference').map((a) => <option key={a}>{a}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="opt-label" className={modalLabelClass}>Label</label>
-              <input id="opt-label" className={modalFieldClass} value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="e.g. Direct · 23kg" />
-              {optErrors.label && <p className="mt-1 text-[11px] text-red-dark">{optErrors.label}</p>}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label htmlFor="opt-depart" className={modalLabelClass}>Departure date &amp; time</label>
-              <input id="opt-depart" type="datetime-local" className={modalFieldClass} value={draft.departureTime} onChange={(e) => setDraft({ ...draft, departureTime: e.target.value })} />
-              {optErrors.departureTime && <p className="mt-1 text-[11px] text-red-dark">{optErrors.departureTime}</p>}
-            </div>
-            <div>
-              <label htmlFor="opt-price" className={modalLabelClass}>Price (₦)</label>
-              <input id="opt-price" type="number" className={`${modalFieldClass} text-brand font-semibold`} value={draft.price || ''} onChange={(e) => setDraft({ ...draft, price: parseInt(e.target.value || '0', 10) })} placeholder="180000" />
-              {optErrors.price && <p className="mt-1 text-[11px] text-red-dark">{optErrors.price}</p>}
-            </div>
-          </div>
-          <div>
-            <label htmlFor="opt-details" className={modalLabelClass}>Details (optional)</label>
-            <input id="opt-details" className={modalFieldClass} value={draft.details} onChange={(e) => setDraft({ ...draft, details: e.target.value })} placeholder="e.g. Aisle seat, refundable" />
-          </div>
-        </div>
-      </Modal>
+      <Formik initialValues={blankDraft()} validationSchema={quoteOptionSchema} onSubmit={commitOption}>
+        {({ submitForm, isSubmitting }) => (
+          <Modal open={addOpen} title="Add travel option" onClose={() => setAddOpen(false)}
+            footer={
+              <div className="flex gap-3 w-full">
+                <button type="button" className="flex-1 py-2.5 bg-card border border-line text-ink font-medium text-sm rounded-lg hover:bg-surface transition-colors" onClick={() => setAddOpen(false)}>Cancel</button>
+                <button type="button" className="flex-1 py-2.5 bg-brand text-white font-semibold text-sm rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50" onClick={() => void submitForm()} disabled={busy || isSubmitting}>Add option</button>
+              </div>
+            }>
+            <Form noValidate className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <SelectField name="airline" label="Airline" icon={Plane} id="opt-airline">
+                  {AIRLINES.filter((a) => a !== 'No preference').map((a) => <option key={a}>{a}</option>)}
+                </SelectField>
+                <TextField name="label" label="Label" placeholder="e.g. Direct · 23kg" icon={Tag} id="opt-label" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <DateTimeField name="departureTime" label="Departure date & time" id="opt-depart" />
+                <TextField name="price" type="number" label="Price (₦)" placeholder="180000" icon={Banknote} inputMode="numeric" id="opt-price" />
+              </div>
+              <TextField name="details" label="Details (optional)" placeholder="e.g. Aisle seat, refundable" icon={Info} id="opt-details" />
+            </Form>
+          </Modal>
+        )}
+      </Formik>
     </div>
   );
 }

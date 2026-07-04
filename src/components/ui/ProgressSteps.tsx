@@ -26,7 +26,7 @@ export function ProgressSteps({ status }: { status: ApiRequestStatus }) {
               <div aria-hidden="true" className={`absolute right-1/2 top-4 w-full h-0.5 -translate-y-1/2 z-0 ${isDone || isActive ? 'bg-brand' : 'bg-line'}`} />
             )}
             <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold relative z-10 transition-colors ${
-              isDone ? 'bg-brand text-white' : isActive ? 'bg-white border-2 border-brand text-brand ring-4 ring-brand-soft' : 'bg-white border border-line text-ink-3'
+              isDone ? 'bg-brand text-white' : isActive ? 'bg-card border-2 border-brand text-brand ring-4 ring-brand-soft' : 'bg-card border border-line text-ink-3'
             }`}>
               {isDone ? <Check size={16} strokeWidth={3} /> : i + 1}
             </div>

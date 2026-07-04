@@ -3,6 +3,7 @@ import { Geist, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from 'react-toastify';
+import { THEME_INIT_SCRIPT } from '@/lib/theme';
 
 const geist = Geist({
   subsets: ['latin'],
@@ -28,7 +29,11 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${geist.variable} ${plusJakarta.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="font-sans">
         {children}
 

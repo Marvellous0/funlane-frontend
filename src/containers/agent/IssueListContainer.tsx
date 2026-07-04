@@ -22,17 +22,17 @@ export function IssueListContainer() {
       />
 
       {error ? (
-        <div className="bg-white rounded-2xl border border-line shadow-card p-8 text-center">
+        <div className="bg-card rounded-2xl border border-line shadow-card p-8 text-center">
           <AlertTriangle aria-hidden="true" className="w-8 h-8 text-amber mx-auto mb-3" />
           <p className="text-sm text-ink-2">{error}</p>
           <button onClick={refresh} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink hover:underline"><RefreshCw className="w-4 h-4" /> Try again</button>
         </div>
       ) : loading ? (
-        <div className="bg-white rounded-2xl border border-line shadow-card"><Loader /></div>
+        <div className="bg-card rounded-2xl border border-line shadow-card"><Loader /></div>
       ) : ready.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ready.map((r) => (
-            <div key={r.id} className="bg-white rounded-2xl border border-line shadow-card p-5 hover:shadow-lg transition-shadow flex flex-col">
+            <div key={r.id} className="bg-card rounded-2xl border border-line shadow-card p-5 hover:shadow-lg transition-shadow flex flex-col">
               <span className="inline-flex items-center gap-1.5 self-start text-[11px] font-semibold uppercase tracking-wide text-green-dark bg-green-soft px-2.5 py-1 rounded-full mb-3">
                 <Lock aria-hidden="true" className="w-3 h-3" /> Funds locked
               </span>
@@ -47,7 +47,7 @@ export function IssueListContainer() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-line shadow-card">
+        <div className="bg-card rounded-2xl border border-line shadow-card">
           <EmptyState icon={CheckCircle2}>
             <div className="space-y-1">
               <p className="font-medium text-ink-2">All approved requests have been issued.</p>

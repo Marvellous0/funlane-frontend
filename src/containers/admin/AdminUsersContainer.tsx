@@ -19,7 +19,7 @@ const ROLE_BADGE: Record<BackendRole, string> = {
 
 /** Avatar ring/text color per role so the directory reads at a glance. */
 const ROLE_AVATAR: Record<BackendRole, string> = {
-  ADMIN: 'bg-ink text-white',
+  ADMIN: 'bg-ink text-card',
   AGENT: 'bg-blue text-white',
   CLIENT: 'bg-green text-white',
 };
@@ -124,8 +124,8 @@ export function AdminUsersContainer() {
               onClick={() => setRoleFilter(t.value)}
               className={`inline-flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-semibold border transition-colors ${
                 active
-                  ? 'bg-ink text-white border-ink shadow-sm'
-                  : 'bg-white text-ink-2 border-line hover:border-ink/30 hover:text-ink'
+                  ? 'bg-ink text-card border-ink shadow-sm'
+                  : 'bg-card text-ink-2 border-line hover:border-ink/30 hover:text-ink'
               }`}
             >
               <t.icon className="w-4 h-4" /> {t.label}
@@ -156,7 +156,7 @@ export function AdminUsersContainer() {
         <select
           value={params.status ?? ''}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-12 px-4 bg-white border border-line rounded-lg text-sm text-ink shadow-sm focus:outline-none focus:border-sky-400"
+          className="h-12 px-4 bg-card border border-line rounded-lg text-sm text-ink shadow-sm focus:outline-none focus:border-sky-400"
         >
           <option value="">All statuses</option>
           <option value="ACTIVE">Active</option>

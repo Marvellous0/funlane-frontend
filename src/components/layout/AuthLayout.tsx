@@ -40,7 +40,7 @@ export function AuthLayout({
                             </div>
                         </div>
 
-                        <div className="w-full bg-white rounded-2xl shadow-lg border border-line p-6 lg:p-0 lg:bg-transparent lg:shadow-none lg:border-0">
+                        <div className="w-full bg-card rounded-2xl shadow-lg border border-line p-6 lg:p-0 lg:bg-transparent lg:shadow-none lg:border-0">
                             {children}
                         </div>
                     </div>

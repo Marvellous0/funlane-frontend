@@ -65,7 +65,7 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
         <ChevronLeft aria-hidden="true" className="w-4 h-4" /> Back to my requests
       </Link>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
           <Plane className="w-6 h-6" />
         </div>
@@ -78,7 +78,7 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card p-5 overflow-x-auto">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-5 overflow-x-auto">
         <ProgressSteps status={r.status} />
       </div>
 
@@ -93,7 +93,7 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
 
               <div className="grid gap-3">
                 {r.quoteOptions.map((o) => (
-                  <div key={o.id} className="bg-white rounded-2xl border border-line p-5 hover:border-brand/40 hover:shadow-card transition-all">
+                  <div key={o.id} className="bg-card rounded-2xl border border-line p-5 hover:border-brand/40 hover:shadow-card transition-all">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
                       <div>
                         <div className="font-semibold text-ink">{o.airline}</div>
@@ -125,14 +125,14 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
           )}
 
           {r.status === 'APPROVED_LOCKED' && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <h2 className="text-lg font-semibold text-ink mb-1">Approved — funds locked</h2>
               <p className="text-sm text-ink-3 mb-4">Your funds are held securely while Funlane issues your ticket. You can still cancel to release them.</p>
               <button onClick={() => setRejectOpen(true)} className="text-red font-semibold text-sm hover:underline">Cancel this request</button>
             </section>
           )}
 
-          <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+          <section className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h2 className="text-lg font-semibold text-ink mb-5">Booking details</h2>
             <div className="grid sm:grid-cols-2 gap-5">
               <DetailGroup label="Travel route" value={routeText(r)} icon={MapPin} />
@@ -147,7 +147,7 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
                 <div className="space-y-2">
                   {r.passengers.map((p, i) => (
                     <div key={p.id} className="flex items-center gap-3 bg-surface rounded-lg p-3 border border-line">
-                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center font-semibold text-xs border border-line">{i + 1}</div>
+                      <div className="w-7 h-7 rounded-full bg-card flex items-center justify-center font-semibold text-xs border border-line">{i + 1}</div>
                       <div>
                         <div className="font-medium text-ink text-sm">{p.fullName}</div>
                         <div className="text-xs text-ink-3">Passport: <span className="font-mono">{p.passportNumber}</span> · {p.nationality}</div>

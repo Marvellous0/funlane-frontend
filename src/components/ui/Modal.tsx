@@ -47,11 +47,11 @@ export function Modal({ open, title, onClose, children, footer, size = '' }: Mod
       aria-label={title}
     >
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm animate-fade-in" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm animate-fade-in" onClick={onClose} aria-hidden="true" />
 
       {/* Container */}
       <div
-        className={`relative bg-white rounded-2xl shadow-lg animate-scale-in overflow-hidden w-full ${
+        className={`relative bg-card rounded-2xl shadow-lg animate-scale-in overflow-hidden w-full ${
           size === 'lg' ? 'max-w-3xl' : 'max-w-md'
         }`}
       >

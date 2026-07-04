@@ -84,7 +84,7 @@ export function SecurityAuditContainer() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
           <div className="max-w-lg">
             <div className="text-brand-soft text-[11px] font-semibold uppercase tracking-wide mb-2">Compliance</div>
-            <h3 className="text-lg font-semibold mb-2">NDPA &amp; regulatory integrity</h3>
+            <h3 className="text-lg text-white font-semibold mb-2">NDPA &amp; regulatory integrity</h3>
             <p className="text-white/60 text-sm leading-relaxed">
               All logs are immutable and cryptographically hashed using SHA-256. Data access is restricted by
               strictly enforced IAM roles.

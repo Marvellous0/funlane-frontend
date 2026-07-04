@@ -34,7 +34,7 @@ const STYLES: Record<ButtonColor, Record<ButtonVariant, string>> = {
     ghost: 'text-blue hover:bg-blue-soft',
   },
   ink: {
-    solid: 'bg-ink text-white hover:bg-ink-2',
+    solid: 'bg-ink text-card hover:bg-ink-2',
     outline: 'border border-line text-ink hover:bg-surface',
     ghost: 'text-ink-2 hover:bg-surface',
   },

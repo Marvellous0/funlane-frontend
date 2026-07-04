@@ -16,10 +16,12 @@ module.exports = {
         mono: ['"Plus Jakarta Sans"', 'monospace'],
       },
       colors: {
+        // Themed tokens are backed by CSS variables (channels) so they flip
+        // under `.dark` and still support `/opacity` modifiers. See globals.css.
         brand: {
-          DEFAULT: '#1670B5',
-          dark: '#0F5390',
-          soft: '#E4F1FB',
+          DEFAULT: 'rgb(var(--brand) / <alpha-value>)',
+          dark: 'rgb(var(--brand-dark) / <alpha-value>)',
+          soft: 'rgb(var(--brand-soft) / <alpha-value>)',
         },
         luxury: {
           gold: '#C5A059',
@@ -28,39 +30,41 @@ module.exports = {
           cream: '#FCFAF7',
         },
         ink: {
-          DEFAULT: '#0F172A',
-          2: '#334155',
-          3: '#64748B',
+          DEFAULT: 'rgb(var(--ink) / <alpha-value>)',
+          2: 'rgb(var(--ink-2) / <alpha-value>)',
+          3: 'rgb(var(--ink-3) / <alpha-value>)',
         },
         navy: {
           DEFAULT: '#05162E',
           light: '#0A1A2F',
         },
-        surface: '#F8FAFC',
-        line: '#E2E8F0',
+        // Page background, raised card surface, and hairline borders.
+        surface: 'rgb(var(--surface) / <alpha-value>)',
+        card: 'rgb(var(--card) / <alpha-value>)',
+        line: 'rgb(var(--line) / <alpha-value>)',
         green: {
-          DEFAULT: '#10B981',
-          dark: '#059669',
-          soft: '#ECFDF5',
+          DEFAULT: 'rgb(var(--green) / <alpha-value>)',
+          dark: 'rgb(var(--green-dark) / <alpha-value>)',
+          soft: 'rgb(var(--green-soft) / <alpha-value>)',
         },
         red: {
-          DEFAULT: '#EF4444',
-          dark: '#DC2626',
-          soft: '#FEF2F2',
+          DEFAULT: 'rgb(var(--red) / <alpha-value>)',
+          dark: 'rgb(var(--red-dark) / <alpha-value>)',
+          soft: 'rgb(var(--red-soft) / <alpha-value>)',
         },
         purple: {
-          DEFAULT: '#7c3aed',
-          soft: '#ede9fe',
+          DEFAULT: 'rgb(var(--purple) / <alpha-value>)',
+          soft: 'rgb(var(--purple-soft) / <alpha-value>)',
         },
         amber: {
-          DEFAULT: '#D97706',
-          dark: '#B45309',
-          soft: '#FEF3C7',
+          DEFAULT: 'rgb(var(--amber) / <alpha-value>)',
+          dark: 'rgb(var(--amber-dark) / <alpha-value>)',
+          soft: 'rgb(var(--amber-soft) / <alpha-value>)',
         },
         blue: {
-          DEFAULT: '#0369A1',
-          dark: '#075985',
-          soft: '#E0F2FE',
+          DEFAULT: 'rgb(var(--blue) / <alpha-value>)',
+          dark: 'rgb(var(--blue-dark) / <alpha-value>)',
+          soft: 'rgb(var(--blue-soft) / <alpha-value>)',
         },
       },
       borderRadius: {

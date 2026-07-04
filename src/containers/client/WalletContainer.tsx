@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { Formik, Form, type FormikHelpers } from 'formik';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWallet } from '@/hooks/useWallet';
 import { fmtNaira, fmtDateTime } from '@/utils/format';
 import { PageHeader, DataTable } from '@/components/ui';
-import { validateSchema } from '@/lib/validation/validate';
+import { TextField } from '@/components/form';
 import { topupSchema } from '@/lib/validation/schemas';
 import type { ApiTransactionType, WalletTransactionView } from '@/interface';
-import { Plus, ShieldCheck, Receipt, Lock, AlertTriangle, RefreshCw, Wallet as WalletIcon } from 'lucide-react';
+import { Plus, ShieldCheck, Receipt, Lock, AlertTriangle, RefreshCw, Wallet as WalletIcon, Banknote } from 'lucide-react';
 
 const TXN_META: Record<ApiTransactionType, { label: string; credit: boolean }> = {
   TOPUP: { label: 'Top-up', credit: true },
@@ -24,23 +25,11 @@ export function WalletContainer() {
   const { wallet, transactions, loading, error, refresh, topUp } = useWallet();
 
   const [showTopup, setShowTopup] = useState(false);
-  const [amount, setAmount] = useState('');
-  const [amountError, setAmountError] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
-  async function onTopUp(e: React.FormEvent) {
-    e.preventDefault();
-    const { values, errors } = await validateSchema(topupSchema, { amount: Number(amount) });
-    if (errors || !values) {
-      setAmountError(errors?.amount ?? 'Enter a valid amount.');
-      return;
-    }
-    setAmountError('');
-    setSubmitting(true);
-    const ok = await topUp(values.amount);
-    setSubmitting(false);
+  async function onTopUp(values: { amount: string }, helpers: FormikHelpers<{ amount: string }>) {
+    const ok = await topUp(Number(values.amount));
     if (ok) {
-      setAmount('');
+      helpers.resetForm();
       setShowTopup(false);
     }
   }
@@ -64,30 +53,30 @@ export function WalletContainer() {
       />
 
       {showTopup && (
-        <form onSubmit={onTopUp} className="bg-white rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-end gap-4">
-          <div className="flex-1">
-            <label htmlFor="topup-amount" className="block text-sm font-medium text-ink mb-1.5">Amount (₦)</label>
-            <input
-              id="topup-amount"
-              type="number"
-              inputMode="numeric"
-              min={100}
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="50000"
-              aria-invalid={Boolean(amountError)}
-              className="auth-field !pl-4"
-            />
-            {amountError && <p className="mt-1.5 text-xs text-red-dark">{amountError}</p>}
-          </div>
-          <button type="submit" disabled={submitting} className="auth-btn sm:w-auto sm:px-6">
-            {submitting ? 'Starting…' : 'Continue to payment'}
-          </button>
-        </form>
+        <Formik initialValues={{ amount: '' }} validationSchema={topupSchema} onSubmit={onTopUp}>
+          {({ isSubmitting }) => (
+            <Form noValidate className="bg-card rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-start gap-4 animate-fade-in">
+              <div className="flex-1">
+                <TextField
+                  name="amount"
+                  type="number"
+                  label="Amount (₦)"
+                  placeholder="50000"
+                  icon={Banknote}
+                  inputMode="numeric"
+                  id="topup-amount"
+                />
+              </div>
+              <button type="submit" disabled={isSubmitting} className="auth-btn sm:w-auto sm:px-6">
+                {isSubmitting ? 'Starting…' : 'Continue to payment'}
+              </button>
+            </Form>
+          )}
+        </Formik>
       )}
 
       {error ? (
-        <div className="bg-white rounded-2xl border border-line shadow-card p-8 text-center">
+        <div className="bg-card rounded-2xl border border-line shadow-card p-8 text-center">
           <AlertTriangle aria-hidden="true" className="w-8 h-8 text-amber mx-auto mb-3" />
           <p className="text-sm text-ink-2">{error}</p>
           <button onClick={refresh} className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-ink hover:underline">
@@ -119,7 +108,7 @@ export function WalletContainer() {
               </dl>
             </div>
 
-            <div className="bg-white rounded-2xl border border-line shadow-card p-6 flex flex-col justify-center items-center text-center gap-3">
+            <div className="bg-card rounded-2xl border border-line shadow-card p-6 flex flex-col justify-center items-center text-center gap-3">
               <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-green-soft text-green flex items-center justify-center">
                 <ShieldCheck className="w-6 h-6" />
               </div>

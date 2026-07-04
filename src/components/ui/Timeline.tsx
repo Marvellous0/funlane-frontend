@@ -11,7 +11,7 @@ export function Timeline({ history }: { history: HistoryEntry[] }) {
           <li key={i} className="relative pl-7 animate-fade-in" style={{ animationDelay: `${i * 50}ms` }}>
             <span
               aria-hidden="true"
-              className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-white border-2 border-brand z-10"
+              className="absolute left-0 top-1 w-3.5 h-3.5 rounded-full bg-card border-2 border-brand z-10"
             />
             <div className="text-[13px] font-medium text-ink leading-snug">{e.text}</div>
             <div className="text-[11px] text-ink-3 mt-0.5">{fmtDateTime(e.ts)}</div>

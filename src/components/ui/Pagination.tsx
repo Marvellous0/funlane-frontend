@@ -34,7 +34,7 @@ export function Pagination({ page, totalPages, onPageChange, total, unit = 'resu
             <select
               value={limit}
               onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="h-9 rounded-md border border-line bg-white px-2 text-sm focus:outline-none focus:border-sky-400"
+              className="h-9 rounded-md border border-line bg-card px-2 text-sm focus:outline-none focus:border-sky-400"
             >
               {PAGE_SIZES.map((size) => (
                 <option key={size} value={size}>

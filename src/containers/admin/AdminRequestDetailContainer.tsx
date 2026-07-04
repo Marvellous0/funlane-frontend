@@ -46,7 +46,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
         <ChevronLeft aria-hidden="true" className="w-4 h-4" /> Back to requests
       </Link>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
         <div aria-hidden="true" className="w-12 h-12 rounded-xl bg-brand-soft text-brand flex items-center justify-center shrink-0">
           <Plane className="w-6 h-6" />
         </div>
@@ -61,14 +61,14 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-line shadow-card p-5 overflow-x-auto">
+      <div className="bg-card rounded-2xl border border-line shadow-card p-5 overflow-x-auto">
         <ProgressSteps status={r.status} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 space-y-6">
           {/* Booking details */}
-          <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+          <section className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h2 className="text-lg font-semibold text-ink mb-5">Booking details</h2>
             <div className="grid sm:grid-cols-2 gap-5">
               <DetailGroup label="Travel route" value={routeText(r)} icon={MapPin} />
@@ -83,7 +83,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
                 <div className="space-y-2">
                   {r.passengers.map((p, i) => (
                     <div key={p.id} className="flex items-center gap-3 bg-surface rounded-lg p-3 border border-line">
-                      <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center font-semibold text-xs border border-line">{i + 1}</div>
+                      <div className="w-7 h-7 rounded-full bg-card flex items-center justify-center font-semibold text-xs border border-line">{i + 1}</div>
                       <div>
                         <div className="font-medium text-ink text-sm">{p.fullName}</div>
                         <div className="text-xs text-ink-3">Passport: <span className="font-mono">{p.passportNumber}</span> · {p.nationality}</div>
@@ -105,7 +105,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
 
           {/* Quote options */}
           {r.quoteOptions.length > 0 && (
-            <section className="bg-white rounded-2xl border border-line shadow-card p-6">
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <h2 className="text-lg font-semibold text-ink mb-4">Quote options</h2>
               <div className="grid gap-3">
                 {r.quoteOptions.map((o) => (
@@ -134,7 +134,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
         </div>
 
         <aside className="space-y-6">
-          <div className="bg-white rounded-2xl border border-line shadow-card p-6">
+          <div className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h3 className="text-base font-semibold text-ink mb-4">Overview</h3>
             <dl className="space-y-3.5 text-sm">
               <Meta label="Assignment" icon={UserCog} value={r.assignedAgentId ? `Agent ${r.assignedAgentId.slice(0, 8)}` : 'Unassigned'} />
