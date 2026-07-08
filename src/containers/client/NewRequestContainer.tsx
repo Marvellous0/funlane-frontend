@@ -6,7 +6,7 @@ import { requestsApi, ApiError } from '@/api';
 import { AIRLINES } from '@/lib/constants';
 import { BUDGET_TIERS } from '@/services/requestView';
 import { newRequestSchema } from '@/lib/validation/schemas';
-import { AIRPORT_OPTIONS } from '@/lib/airports';
+import { useCityOptions, useNationalityOptions } from '@/hooks/useCountryData';
 import type { ApiBudgetTier } from '@/interface';
 import { toast } from 'react-toastify';
 import { PageHeader } from '@/components/ui';
@@ -68,6 +68,8 @@ const initialValues: RequestFormValues = {
 
 export function NewRequestContainer() {
   const router = useRouter();
+  const { options: cityOptions } = useCityOptions();
+  const { options: nationalityOptions } = useNationalityOptions();
 
   async function handleSubmit(values: RequestFormValues) {
     try {
@@ -113,8 +115,8 @@ export function NewRequestContainer() {
               />
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <ComboboxField name="origin" label="Origin city" placeholder="Search city or airport" icon={PlaneTakeoff} options={AIRPORT_OPTIONS} />
-                <ComboboxField name="destination" label="Destination" placeholder="Search city or airport" icon={PlaneLanding} options={AIRPORT_OPTIONS} />
+                <ComboboxField name="origin" label="Origin city" placeholder="Search city or airport" icon={PlaneTakeoff} options={cityOptions} strict />
+                <ComboboxField name="destination" label="Destination" placeholder="Search city or airport" icon={PlaneLanding} options={cityOptions} strict />
               </div>
             </Section>
 
@@ -181,7 +183,16 @@ export function NewRequestContainer() {
                         <div className="grid sm:grid-cols-2 gap-4 pr-8">
                           <TextField name={`passengers.${i}.fullName`} label="Full name" placeholder="Jane Doe" icon={User} />
                           <TextField name={`passengers.${i}.passportNumber`} label="Passport number" placeholder="A00000000" icon={BookUser} />
-                          <TextField name={`passengers.${i}.nationality`} label="Nationality" placeholder="Nigerian" icon={Globe} />
+                          <ComboboxField
+                            name={`passengers.${i}.nationality`}
+                            label="Nationality"
+                            placeholder="Search nationality"
+                            icon={Globe}
+                            options={nationalityOptions}
+                            // Show the full list (it's scrollable); typing still filters.
+                            limit={nationalityOptions.length}
+                            strict
+                          />
                           <DateField name={`passengers.${i}.dateOfBirth`} label="Date of birth" />
                           <DateField name={`passengers.${i}.passportExpiry`} label="Passport expiry" />
                           <FileField

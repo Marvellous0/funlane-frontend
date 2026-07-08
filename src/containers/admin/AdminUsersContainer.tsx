@@ -114,15 +114,15 @@ export function AdminUsersContainer() {
         }
       />
 
-      {/* Role tabs */}
-      <div className="flex flex-wrap gap-2">
+      {/* Role tabs — single scrollable row on mobile, wraps on desktop */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0 sm:mb-0">
         {ROLE_TABS.map((t) => {
           const active = (params.role ?? '') === t.value;
           return (
             <button
               key={t.value || 'all'}
               onClick={() => setRoleFilter(t.value)}
-              className={`inline-flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-semibold border transition-colors ${
+              className={`shrink-0 whitespace-nowrap inline-flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-semibold border transition-colors ${
                 active
                   ? 'bg-ink text-card border-ink shadow-sm'
                   : 'bg-card text-ink-2 border-line hover:border-ink/30 hover:text-ink'

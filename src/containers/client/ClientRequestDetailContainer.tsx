@@ -23,13 +23,16 @@ function synthTimeline(createdAt: string, issuedAt: string | null, completedAt: 
 }
 
 export function ClientRequestDetailContainer({ id }: { id: string }) {
-  const { request: r, loading, error, busy, refresh, approve, reject, cancel } = useRequestDetail(id);
+  const { request: r, loading, error, busy, refresh, approve, reject, cancel, reissue } = useRequestDetail(id);
   const { wallet } = useWallet();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [selectedOpt, setSelectedOpt] = useState<QuoteOptionView | null>(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [reissueOpen, setReissueOpen] = useState(false);
+  const [reissueConfirmOpen, setReissueConfirmOpen] = useState(false);
+  const [reissueReason, setReissueReason] = useState('');
 
   if (loading) return <div className="max-w-5xl mx-auto"><Loader label="Loading request…" size="lg" /></div>;
   if (error) return (
@@ -48,6 +51,15 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
     if (!selectedOpt) return;
     const ok = await approve(selectedOpt.id);
     if (ok) setConfirmOpen(false);
+  }
+
+  async function handleReissue() {
+    const ok = await reissue(reissueReason.trim());
+    if (ok) {
+      setReissueConfirmOpen(false);
+      setReissueOpen(false);
+      setReissueReason('');
+    }
   }
 
   async function handleReject() {
@@ -83,7 +95,7 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 min-w-0 space-y-6">
           {r.status === 'OPTIONS_SENT' && (
             <section className="space-y-4">
               <div className="flex items-center justify-between">
@@ -132,6 +144,18 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
             </section>
           )}
 
+          {r.status === 'ISSUED' && (
+            <section className="bg-card rounded-2xl border border-line shadow-card p-6">
+              <h2 className="text-lg font-semibold text-ink mb-1">Ticket issued</h2>
+              <p className="text-sm text-ink-3 mb-4">
+                Spotted a mistake in the details you submitted? You can ask the agency to re-issue this ticket.
+              </p>
+              <button onClick={() => setReissueOpen(true)} className="inline-flex items-center gap-1.5 text-brand font-semibold text-sm hover:underline">
+                <RefreshCw aria-hidden="true" className="w-4 h-4" /> Request a re-issue
+              </button>
+            </section>
+          )}
+
           <section className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h2 className="text-lg font-semibold text-ink mb-5">Booking details</h2>
             <div className="grid sm:grid-cols-2 gap-5">
@@ -168,7 +192,7 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
           </section>
         </div>
 
-        <aside className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           <div className="bg-gradient-to-br from-navy-light to-navy text-white rounded-2xl p-6">
             <div className="text-[11px] uppercase tracking-wide text-white/50 mb-1.5">My wallet</div>
             <div className="text-2xl font-bold mb-4">{fmtNaira(wallet?.availableBalance ?? 0)}</div>
@@ -206,6 +230,44 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
               <span>This locks the exact amount in your wallet until the ticket is issued.</span>
             </div>
           </div>
+        }
+      />
+
+      {/* Re-issue: reason first, then an explicit confirmation. */}
+      <Modal open={reissueOpen} title="Request a re-issue" onClose={() => setReissueOpen(false)}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" color="ink" onClick={() => setReissueOpen(false)} disabled={busy}>Back</Button>
+            <Button color="brand" disabled={!reissueReason.trim()} onClick={() => setReissueConfirmOpen(true)}>
+              Continue
+            </Button>
+          </div>
+        }>
+        <div className="py-1">
+          <label htmlFor="reissue-reason" className="block text-[11px] font-semibold text-ink-3 uppercase tracking-wide mb-2">
+            What needs to be corrected?
+          </label>
+          <textarea id="reissue-reason" value={reissueReason} onChange={(e) => setReissueReason(e.target.value)}
+            placeholder="e.g. Passport number was mistyped — it should be A01234567, or the name is misspelt…"
+            className="w-full min-h-[110px] p-3.5 text-sm bg-surface border border-line rounded-xl focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-colors" />
+        </div>
+      </Modal>
+
+      <ConfirmDialog
+        open={reissueConfirmOpen}
+        title="Confirm re-issue request"
+        danger={false}
+        confirmColor="brand"
+        confirmLabel="Send re-issue request"
+        cancelLabel="Back"
+        loading={busy}
+        onConfirm={handleReissue}
+        onCancel={() => setReissueConfirmOpen(false)}
+        message={
+          <p className="text-sm text-ink-2 leading-relaxed">
+            The agency will review your correction and re-issue the ticket for{' '}
+            <span className="font-semibold text-ink">{routeText(r)}</span>. Are you sure you want to proceed?
+          </p>
         }
       />
 

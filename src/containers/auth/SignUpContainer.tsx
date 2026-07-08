@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Formik, Form, useFormikContext, type FormikHelpers } from 'formik';
 import { useAuth } from '@/hooks/useAuth';
 import { ApiError } from '@/api';
@@ -44,6 +45,7 @@ function passwordChecks(password: string) {
 }
 
 export function SignUpContainer() {
+  const router = useRouter();
   const { register } = useAuth();
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
 
@@ -61,17 +63,16 @@ export function SignUpContainer() {
 
     try {
       const name = `${values.firstName} ${values.lastName}`.trim();
-      const response = await register({
+      const email = values.email.trim();
+      await register({
         name,
-        email: values.email.trim(),
+        email,
         phone: values.phone.trim(),
         password: values.password,
       });
-
-      toast.success(
-        response.message ||
-        'Registration successful. Check your email to verify your account.'
-      );
+      // Send the new client to the "check your inbox" screen — they must
+      // verify their email before they can log in.
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not create your account. Please try again.')
     }

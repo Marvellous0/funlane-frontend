@@ -12,21 +12,18 @@ import { StatsSection } from '@/components/landing/StatsSection';
 import { SecuritySection } from '@/components/landing/SecuritySection';
 import { PortalSection } from '@/components/landing/PortalSection';
 import { TrustMarque } from '@/components/landing/TrustMarque';
-
-type Theme = 'dark' | 'light';
+import { activeMode, setMode, type ThemeMode } from '@/lib/theme';
 
 export function LandingContainer() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<ThemeMode>('light');
 
+  // The no-flash script in the root layout has already applied the stored (or
+  // system) mode to <html>; sync local state with it so the toggle icon and
+  // theme-aware sections match from the very first interaction.
   useEffect(() => {
-    const stored = localStorage.getItem('funlane-theme') as Theme | null;
-    if (stored === 'dark' || stored === 'light') {
-      setTheme(stored);
-    } else {
-      setTheme(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    }
+    setTheme(activeMode());
   }, []);
 
   useEffect(() => {
@@ -37,17 +34,15 @@ export function LandingContainer() {
   }, []);
 
   function toggleTheme() {
-    setTheme((t) => {
-      const next = t === 'dark' ? 'light' : 'dark';
-      localStorage.setItem('funlane-theme', next);
-      return next;
-    });
+    const next: ThemeMode = theme === 'dark' ? 'light' : 'dark';
+    setMode(next); // persists + applies the `.dark` class on <html>
+    setTheme(next);
   }
 
   const isDark = theme === 'dark';
 
   return (
-    <div className={isDark ? 'dark' : ''}>
+    <div>
       <div className="min-h-screen bg-white text-ink dark:bg-[#070D1A] dark:text-white overflow-x-hidden antialiased transition-colors duration-300">
         <NavBar isDark={isDark} menuOpen={menuOpen} scrolled={scrolled} setMenuOpen={setMenuOpen} toggleTheme={toggleTheme} />
 

@@ -114,6 +114,14 @@ export function cancel(id: string, reason: string): Promise<RequestResponse> {
   return apiFetch<RequestResponse>(`/requests/${id}/cancel`, { method: 'POST', body: { reason }, auth: true });
 }
 
+/**
+ * POST /requests/{id}/reissue — client asks for the issued ticket to be
+ * re-issued (e.g. a mistake in passenger details on the original form).
+ */
+export function reissue(id: string, reason: string): Promise<RequestResponse> {
+  return apiFetch<RequestResponse>(`/requests/${id}/reissue`, { method: 'POST', body: { reason }, auth: true });
+}
+
 /** POST /requests/{id}/complete — capture funds and complete. */
 export function complete(id: string): Promise<RequestResponse> {
   return apiFetch<RequestResponse>(`/requests/${id}/complete`, { method: 'POST', auth: true });

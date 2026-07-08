@@ -19,8 +19,7 @@ const SECTIONS: NavSection[] = [
   {
     title: 'Governance',
     items: [
-      { label: 'Security Audit', icon: ShieldCheck, href: '/agent/audit' },
-      { label: 'Clients & Wallets', icon: Users, href: '/agent/clients' },
+      { label: 'Security Audit', icon: ShieldCheck, href: '/agent/audit' }
     ],
   },
   {

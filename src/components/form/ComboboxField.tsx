@@ -23,6 +23,12 @@ interface ComboboxFieldProps {
   disabled?: boolean;
   /** Cap on rendered matches. Defaults to 8. */
   limit?: number;
+  /**
+   * When true the field is search-and-select only: typing just filters, and a
+   * value is committed exclusively by picking an option. Free text that
+   * doesn't match an option is cleared on blur so it can never be submitted.
+   */
+  strict?: boolean;
   id?: string;
 }
 
@@ -31,10 +37,10 @@ function haystack(o: ComboOption) {
 }
 
 /**
- * Accessible airport/city autocomplete. Formik holds the free-text value (so
- * the existing string schema keeps working), while the dropdown assists with
- * canonical picks. Selecting an option commits its `value`; typing commits the
- * raw text. Fully keyboard-driven per the WAI-ARIA combobox pattern.
+ * Accessible autocomplete. Formik holds a plain string (so the existing string
+ * schemas keep working) while the dropdown assists with canonical picks. In
+ * the default mode typing commits the raw text; in `strict` mode only picking
+ * an option commits. Fully keyboard-driven per the WAI-ARIA combobox pattern.
  */
 export function ComboboxField({
   name,
@@ -45,6 +51,7 @@ export function ComboboxField({
   hint,
   disabled,
   limit = 8,
+  strict = false,
   id,
 }: ComboboxFieldProps) {
   const [field, meta, helpers] = useField<string>(name);
@@ -88,6 +95,37 @@ export function ComboboxField({
     void helpers.setTouched(true, false);
   }
 
+  function handleInput(text: string) {
+    if (strict) {
+      // Typing only filters; a previously committed pick is invalidated so
+      // stale values can't survive an edit.
+      setQuery(text);
+      if (field.value) void helpers.setValue('');
+    } else {
+      commit(text);
+    }
+  }
+
+  function handleBlur() {
+    focusedRef.current = false;
+    setOpen(false);
+    if (strict) {
+      // Snap free text to an exact option match, otherwise clear it.
+      const q = query.trim().toLowerCase();
+      const exact = q
+        ? options.find((o) => o.value.toLowerCase() === q || o.label.toLowerCase() === q)
+        : undefined;
+      if (exact) {
+        setQuery(exact.value);
+        void helpers.setValue(exact.value);
+      } else if (q !== (field.value ?? '').toLowerCase()) {
+        setQuery('');
+        void helpers.setValue('');
+      }
+    }
+    void helpers.setTouched(true);
+  }
+
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -123,9 +161,9 @@ export function ComboboxField({
             disabled={disabled}
             placeholder={placeholder ?? ' '}
             value={query}
-            onChange={(e) => { commit(e.target.value); setOpen(true); setActive(0); }}
+            onChange={(e) => { handleInput(e.target.value); setOpen(true); setActive(0); }}
             onFocus={() => { focusedRef.current = true; setOpen(true); }}
-            onBlur={() => { focusedRef.current = false; setOpen(false); void helpers.setTouched(true); }}
+            onBlur={handleBlur}
             onKeyDown={onKeyDown}
             className={`${controlClass} placeholder:text-transparent focus:placeholder:text-ink-3/50 ${Icon ? 'pl-11' : 'pl-4'} pr-10`}
           />

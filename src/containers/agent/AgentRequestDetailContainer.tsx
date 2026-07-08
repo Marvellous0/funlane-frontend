@@ -111,7 +111,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
       )}
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 min-w-0 space-y-6">
           {/* --- Status-driven action panel --- */}
           {r.status === 'PENDING' && !r.assignedAgentId && (
             <section className="bg-card rounded-2xl border border-line shadow-card p-6 text-center">
@@ -279,7 +279,7 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
           </section>
         </div>
 
-        <aside className="space-y-3">
+        <aside className="min-w-0 space-y-3">
           <h3 className="text-base font-semibold text-ink">Activity</h3>
           <Timeline history={synthTimeline(r)} />
         </aside>
@@ -295,13 +295,13 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
               </div>
             }>
             <Form noValidate className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 <SelectField name="airline" label="Airline" icon={Plane} id="opt-airline">
                   {AIRLINES.filter((a) => a !== 'No preference').map((a) => <option key={a}>{a}</option>)}
                 </SelectField>
                 <TextField name="label" label="Label" placeholder="e.g. Direct · 23kg" icon={Tag} id="opt-label" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 gap-3">
                 <DateTimeField name="departureTime" label="Departure date & time" id="opt-depart" />
                 <TextField name="price" type="number" label="Price (₦)" placeholder="180000" icon={Banknote} inputMode="numeric" id="opt-price" />
               </div>

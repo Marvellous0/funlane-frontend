@@ -66,7 +66,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 min-w-0 space-y-6">
           {/* Booking details */}
           <section className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h2 className="text-lg font-semibold text-ink mb-5">Booking details</h2>
@@ -133,7 +133,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
           )}
         </div>
 
-        <aside className="space-y-6">
+        <aside className="min-w-0 space-y-6">
           <div className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h3 className="text-base font-semibold text-ink mb-4">Overview</h3>
             <dl className="space-y-3.5 text-sm">

@@ -155,6 +155,7 @@ export function useRequestDetail(id: string) {
     approve: (optionId: string) => run(() => requestsApi.approve(id, optionId), 'Approved — funds locked.'),
     reject: (reason: string) => run(() => requestsApi.reject(id, reason), 'Sent back to the agent.'),
     cancel: (reason: string) => run(() => requestsApi.cancel(id, reason), 'Request cancelled — funds released.'),
+    reissue: (reason: string) => run(() => requestsApi.reissue(id, reason), 'Re-issue request sent to the agency.'),
     complete: () => run(() => requestsApi.complete(id), 'Marked complete — funds captured.'),
     uploadTicket: (file: File) => run(() => requestsApi.uploadTicket(id, file), 'Ticket uploaded.'),
   };

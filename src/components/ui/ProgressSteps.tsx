@@ -14,8 +14,11 @@ function progressIndex(status: ApiRequestStatus): number {
 export function ProgressSteps({ status }: { status: ApiRequestStatus }) {
   const cur = progressIndex(status);
 
+  // Owns its horizontal scrolling so every call site (detail pages, the agent
+  // peek drawer) is mobile-safe without needing a wrapper of its own.
   return (
-    <ol className="flex items-center justify-between min-w-[520px] py-2 px-1">
+    <div className="overflow-x-auto scrollbar-hide">
+      <ol className="flex items-center justify-between min-w-[520px] py-2 px-1">
       {ORDER.map((s, i) => {
         const isDone = i < cur;
         const isActive = i === cur;
@@ -35,7 +38,8 @@ export function ProgressSteps({ status }: { status: ApiRequestStatus }) {
             </div>
           </li>
         );
-      })}
-    </ol>
+        })}
+      </ol>
+    </div>
   );
 }

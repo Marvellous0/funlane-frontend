@@ -102,9 +102,16 @@ export const createAdminSchema = yup.object({
 
 /* Travel requests ----------------------------------------------------- */
 
+/** Passport numbers worldwide are 6–9 characters, letters and digits only. */
+const passportNumber = yup
+  .string()
+  .trim()
+  .required('Passport number is required.')
+  .matches(/^[A-Za-z0-9]{6,9}$/, 'Enter a valid passport number (6–9 letters or numbers, no spaces or symbols).');
+
 export const passengerSchema = yup.object({
   fullName: yup.string().trim().required('Full name is required.'),
-  passportNumber: yup.string().trim().required('Passport number is required.'),
+  passportNumber,
   nationality: yup.string().trim().required('Nationality is required.'),
   dateOfBirth: yup.string().required('Date of birth is required.'),
   passportExpiry: yup.string().required('Passport expiry is required.'),

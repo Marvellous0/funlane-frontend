@@ -44,8 +44,8 @@ export function AdminRequestsContainer() {
         }
       />
 
-      {/* Status filter */}
-      <div className="flex flex-wrap gap-2">
+      {/* Status filter — single scrollable row on mobile, wraps on desktop */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 -mb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0 sm:mb-0">
         <FilterChip active={!params.status} onClick={() => setStatus('')} label="All" />
         {STATUS_OPTIONS.map((s) => (
           <FilterChip key={s} active={params.status === s} onClick={() => setStatus(s)} label={STATUS_META[s]?.label ?? s} />
@@ -94,7 +94,7 @@ function FilterChip({ active, onClick, label }: { active: boolean; onClick: () =
   return (
     <button
       onClick={onClick}
-      className={`px-3.5 h-9 rounded-lg text-sm font-semibold border transition-colors ${
+      className={`shrink-0 whitespace-nowrap px-3.5 h-9 rounded-lg text-sm font-semibold border transition-colors ${
         active ? 'bg-ink text-card border-ink shadow-sm' : 'bg-card text-ink-2 border-line hover:border-ink/30 hover:text-ink'
       }`}
     >

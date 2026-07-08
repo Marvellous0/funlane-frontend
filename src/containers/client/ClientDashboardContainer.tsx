@@ -54,7 +54,9 @@ export function ClientDashboardContainer() {
       </section>
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
-        <section className="lg:col-span-2 space-y-4">
+        {/* min-w-0: let the column shrink below the table's min width so the
+            table scrolls inside its card instead of stretching the page. */}
+        <section className="lg:col-span-2 min-w-0 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-ink">Recent requests</h2>
             <Link href="/client/requests" className="text-sm font-medium text-brand hover:underline">View all</Link>
@@ -78,7 +80,7 @@ export function ClientDashboardContainer() {
           </div>
         </section>
 
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           {reviewReq ? (
             <div className="bg-card rounded-2xl border border-line shadow-card p-5">
               <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-purple bg-purple-soft px-2.5 py-1 rounded-full">Action needed</span>
