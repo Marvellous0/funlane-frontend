@@ -12,18 +12,20 @@ import { StatsSection } from '@/components/landing/StatsSection';
 import { SecuritySection } from '@/components/landing/SecuritySection';
 import { PortalSection } from '@/components/landing/PortalSection';
 import { TrustMarque } from '@/components/landing/TrustMarque';
-import { activeMode, setMode, type ThemeMode } from '@/lib/theme';
+import { activeMode, getOrgMode, setMode, type ThemeMode } from '@/lib/theme';
 
 export function LandingContainer() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [theme, setTheme] = useState<ThemeMode>('light');
+  const [themeLocked, setThemeLocked] = useState(false);
 
-  // The no-flash script in the root layout has already applied the stored (or
-  // system) mode to <html>; sync local state with it so the toggle icon and
+  // The no-flash script in the root layout has already applied the effective
+  // mode to <html>; sync local state with it so the toggle icon and
   // theme-aware sections match from the very first interaction.
   useEffect(() => {
     setTheme(activeMode());
+    setThemeLocked(getOrgMode() !== null);
   }, []);
 
   useEffect(() => {
@@ -44,7 +46,7 @@ export function LandingContainer() {
   return (
     <div>
       <div className="min-h-screen bg-white text-ink dark:bg-[#070D1A] dark:text-white overflow-x-hidden antialiased transition-colors duration-300">
-        <NavBar isDark={isDark} menuOpen={menuOpen} scrolled={scrolled} setMenuOpen={setMenuOpen} toggleTheme={toggleTheme} />
+        <NavBar isDark={isDark} menuOpen={menuOpen} scrolled={scrolled} setMenuOpen={setMenuOpen} toggleTheme={toggleTheme} themeLocked={themeLocked} />
 
         <HeroSection isDark={isDark} />
 

@@ -1,15 +1,21 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
+import { Formik, Form, type FormikHelpers } from 'formik';
 import { useRequestDetail } from '@/hooks/useRequestsLive';
-import { StatusBadge, ProgressSteps, Timeline, EmptyState, Loader } from '@/components/ui';
+import { StatusBadge, ProgressSteps, Timeline, EmptyState, Loader, Modal, Button, ConfirmDialog } from '@/components/ui';
+import { TextField, SelectField, DateTimeField } from '@/components/form';
+import { AIRLINES } from '@/lib/constants';
+import { quoteOptionSchema } from '@/lib/validation/schemas';
 import { fmtNaira, fmtDate, fmtDateTime, fmtDepartTime } from '@/utils/format';
 import { routeText } from '@/utils/request.utils';
-import type { HistoryEntry } from '@/interface';
+import type { HistoryEntry, QuoteOptionView } from '@/interface';
 import type { RequestVM } from '@/services/requestView';
 import {
   HelpCircle, ChevronLeft, Plane, MapPin, Repeat, Calendar, Undo2, PlaneTakeoff,
-  Coins, RefreshCw, UserCog, Lightbulb,
+  Coins, RefreshCw, UserCog, Lightbulb, Hand, Plus, Send, X, Paperclip, FileText,
+  CheckCircle2, Lock, Tag, Banknote, Info, Wrench,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 
@@ -21,8 +27,59 @@ function synthTimeline(r: RequestVM): HistoryEntry[] {
   return items;
 }
 
+/** Price stays a string in the form; yup casts it on validate, we cast on submit. */
+interface QuoteDraftValues {
+  airline: string;
+  label: string;
+  departureTime: string;
+  price: string;
+  details: string;
+}
+
+const blankDraft = (): QuoteDraftValues => ({ airline: AIRLINES[0], label: '', departureTime: '', price: '', details: '' });
+
+/** Which reason-collecting action is open, if any. */
+type ReasonAction = 'reject' | 'cancel' | 'reissue';
+
+const REASON_COPY: Record<ReasonAction, { title: string; label: string; confirm: string; placeholder: string }> = {
+  reject: {
+    title: 'Reject options (as client)',
+    label: 'What should be changed?',
+    confirm: 'Send back to agent',
+    placeholder: 'e.g. Please find earlier flights…',
+  },
+  cancel: {
+    title: 'Cancel request (as client)',
+    label: 'Reason for cancelling',
+    confirm: 'Cancel request',
+    placeholder: 'e.g. Trip postponed…',
+  },
+  reissue: {
+    title: 'Request re-issue (as client)',
+    label: 'What needs to be corrected?',
+    confirm: 'Send re-issue request',
+    placeholder: 'e.g. Passport number was mistyped…',
+  },
+};
+
+/**
+ * Admin request detail. Read-only overview plus a full lifecycle console:
+ * the admin can act as the agent (claim, quote, issue, complete) and as the
+ * client (approve, reject, cancel, re-issue) to exercise the whole flow —
+ * built to make end-to-end testing painless.
+ */
 export function AdminRequestDetailContainer({ id }: { id: string }) {
-  const { request: r, loading, error, refresh } = useRequestDetail(id);
+  const {
+    request: r, loading, error, busy, refresh,
+    claim, addOption, removeOption, sendOptions, approve, reject, cancel, reissue, complete, uploadTicket,
+  } = useRequestDetail(id);
+
+  const [addOpen, setAddOpen] = useState(false);
+  const [ticketFile, setTicketFile] = useState<File | null>(null);
+  const [selectedOpt, setSelectedOpt] = useState<QuoteOptionView | null>(null);
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [reasonAction, setReasonAction] = useState<ReasonAction | null>(null);
+  const [reason, setReason] = useState('');
 
   if (loading) return <div className="max-w-5xl mx-auto"><Loader label="Loading request…" size="lg" /></div>;
   if (error)
@@ -39,6 +96,42 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
       </div>
     );
   if (!r) return <EmptyState icon={HelpCircle}>Request not found.</EmptyState>;
+
+  async function commitOption(values: QuoteDraftValues, helpers: FormikHelpers<QuoteDraftValues>) {
+    const ok = await addOption({
+      airline: values.airline,
+      label: values.label,
+      details: values.details,
+      price: Number(values.price),
+      departureTime: new Date(values.departureTime).toISOString(),
+    });
+    if (ok) {
+      helpers.resetForm();
+      setAddOpen(false);
+    }
+  }
+
+  async function handleApprove() {
+    if (!selectedOpt) return;
+    const ok = await approve(selectedOpt.id);
+    if (ok) setApproveOpen(false);
+  }
+
+  async function handleReason() {
+    if (!reasonAction || !reason.trim()) return;
+    const run = { reject, cancel, reissue }[reasonAction];
+    const ok = await run(reason.trim());
+    if (ok) {
+      setReasonAction(null);
+      setReason('');
+    }
+  }
+
+  async function issueTicket() {
+    if (!ticketFile) return;
+    const ok = await uploadTicket(ticketFile);
+    if (ok) setTicketFile(null);
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
@@ -67,6 +160,110 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 min-w-0 space-y-6">
+          {/* ------- Admin lifecycle console ------- */}
+          <section className="bg-card rounded-2xl border-2 border-dashed border-brand/30 p-6 space-y-5">
+            <div className="flex items-center gap-2.5">
+              <span className="w-9 h-9 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
+                <Wrench aria-hidden="true" className="w-[18px] h-[18px]" />
+              </span>
+              <div>
+                <h2 className="text-base font-semibold text-ink">Lifecycle console</h2>
+                <p className="text-xs text-ink-3">Act as the agent or the client to move this request through any stage.</p>
+              </div>
+            </div>
+
+            {r.status === 'PENDING' && !r.assignedAgentId && (
+              <Button color="brand" leftIcon={Hand} loading={busy} onClick={claim}>
+                Claim request (as agent)
+              </Button>
+            )}
+
+            {r.status === 'PENDING' && r.assignedAgentId && (
+              <div className="space-y-4">
+                <div className="space-y-2.5">
+                  {r.quoteOptions.map((o) => (
+                    <div key={o.id} className="flex items-center justify-between gap-3 p-3.5 bg-surface rounded-xl border border-line">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink truncate">{o.airline} <span className="text-[11px] text-ink-3 ml-1">{o.label}</span></div>
+                        <div className="text-xs text-ink-3 mt-0.5">Departs {fmtDepartTime(o.departureTime)} · {fmtNaira(o.price)}</div>
+                      </div>
+                      <button onClick={() => removeOption(o.id)} disabled={busy} aria-label={`Remove ${o.airline} option`} className="shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-ink-3 hover:bg-red-soft hover:text-red transition-colors disabled:opacity-50">
+                        <X aria-hidden="true" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {!r.quoteOptions.length && (
+                    <div className="py-8 border border-dashed border-line rounded-xl text-center text-ink-3 text-sm">No quote options staged yet.</div>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  <Button color="brand" variant="outline" leftIcon={Plus} onClick={() => setAddOpen(true)} disabled={busy}>
+                    Add option
+                  </Button>
+                  <Button color="brand" leftIcon={Send} loading={busy} disabled={!r.quoteOptions.length} onClick={sendOptions}>
+                    Send options to client
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {r.status === 'OPTIONS_SENT' && (
+              <div className="space-y-4">
+                <div className="space-y-2.5">
+                  {r.quoteOptions.map((o) => (
+                    <div key={o.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface rounded-xl border border-line">
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink truncate">{o.airline} <span className="text-[11px] text-ink-3 ml-1">{o.label}</span></div>
+                        <div className="text-xs text-ink-3 mt-0.5">Departs {fmtDepartTime(o.departureTime)} · <span className="font-semibold text-brand">{fmtNaira(o.price)}</span></div>
+                      </div>
+                      <Button color="brand" onClick={() => { setSelectedOpt(o); setApproveOpen(true); }} disabled={busy}>
+                        Approve (as client)
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button color="red" variant="outline" leftIcon={Undo2} onClick={() => setReasonAction('reject')} disabled={busy}>
+                  Reject options (as client)
+                </Button>
+              </div>
+            )}
+
+            {r.status === 'APPROVED_LOCKED' && (
+              <div className="space-y-4">
+                <label htmlFor="admin-ticket-file" className={`w-full border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${ticketFile ? 'border-green bg-green-soft text-green-dark' : 'border-line hover:border-brand hover:bg-brand-soft/50 text-ink-3'}`}>
+                  {ticketFile ? <FileText aria-hidden="true" className="w-6 h-6 mb-2" /> : <Paperclip aria-hidden="true" className="w-6 h-6 mb-2" />}
+                  <span className="text-sm font-semibold">{ticketFile ? ticketFile.name : 'Attach e-ticket (PDF/JPEG/PNG)'}</span>
+                </label>
+                <input id="admin-ticket-file" type="file" accept="application/pdf,image/jpeg,image/png" className="sr-only" onChange={(e) => setTicketFile(e.target.files?.[0] ?? null)} />
+                <div className="flex flex-wrap gap-3">
+                  <Button color="brand" leftIcon={Lock} loading={busy} disabled={!ticketFile} onClick={issueTicket}>
+                    Issue ticket (as agent)
+                  </Button>
+                  <Button color="red" variant="outline" onClick={() => setReasonAction('cancel')} disabled={busy}>
+                    Cancel request (as client)
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {r.status === 'ISSUED' && (
+              <div className="flex flex-wrap gap-3">
+                <Button color="green" leftIcon={CheckCircle2} loading={busy} onClick={complete}>
+                  Mark complete &amp; capture funds
+                </Button>
+                <Button color="brand" variant="outline" leftIcon={RefreshCw} onClick={() => setReasonAction('reissue')} disabled={busy}>
+                  Request re-issue (as client)
+                </Button>
+              </div>
+            )}
+
+            {(r.status === 'COMPLETED' || r.status === 'CANCELLED') && (
+              <p className="text-sm text-ink-3">
+                This request is {r.status === 'COMPLETED' ? 'completed' : 'cancelled'} — no further lifecycle actions are available.
+              </p>
+            )}
+          </section>
+
           {/* Booking details */}
           <section className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h2 className="text-lg font-semibold text-ink mb-5">Booking details</h2>
@@ -103,7 +300,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
             </div>
           </section>
 
-          {/* Quote options */}
+          {/* Quote options (read-only recap) */}
           {r.quoteOptions.length > 0 && (
             <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <h2 className="text-lg font-semibold text-ink mb-4">Quote options</h2>
@@ -157,6 +354,81 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
           </div>
         </aside>
       </div>
+
+      {/* Add quote option (agent power) */}
+      <Formik initialValues={blankDraft()} validationSchema={quoteOptionSchema} onSubmit={commitOption}>
+        {({ submitForm, isSubmitting }) => (
+          <Modal open={addOpen} title="Add travel option" onClose={() => setAddOpen(false)}
+            footer={
+              <div className="flex gap-3 w-full">
+                <button type="button" className="flex-1 py-2.5 bg-card border border-line text-ink font-medium text-sm rounded-lg hover:bg-surface transition-colors" onClick={() => setAddOpen(false)}>Cancel</button>
+                <button type="button" className="flex-1 py-2.5 bg-brand text-white font-semibold text-sm rounded-lg hover:bg-brand-dark transition-colors disabled:opacity-50" onClick={() => void submitForm()} disabled={busy || isSubmitting}>Add option</button>
+              </div>
+            }>
+            <Form noValidate className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <SelectField name="airline" label="Airline" icon={Plane} id="admin-opt-airline">
+                  {AIRLINES.filter((a) => a !== 'No preference').map((a) => <option key={a}>{a}</option>)}
+                </SelectField>
+                <TextField name="label" label="Label" placeholder="e.g. Direct · 23kg" icon={Tag} id="admin-opt-label" />
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <DateTimeField name="departureTime" label="Departure date & time" id="admin-opt-depart" />
+                <TextField name="price" type="number" label="Price (₦)" placeholder="180000" icon={Banknote} inputMode="numeric" id="admin-opt-price" />
+              </div>
+              <TextField name="details" label="Details (optional)" placeholder="e.g. Aisle seat, refundable" icon={Info} id="admin-opt-details" />
+            </Form>
+          </Modal>
+        )}
+      </Formik>
+
+      {/* Approve confirmation (client power) */}
+      <ConfirmDialog
+        open={approveOpen}
+        title="Approve option (as client)"
+        danger={false}
+        confirmColor="brand"
+        confirmLabel="Approve & lock funds"
+        cancelLabel="Back"
+        loading={busy}
+        onConfirm={handleApprove}
+        onCancel={() => setApproveOpen(false)}
+        message={
+          <p className="text-sm text-ink-2 leading-relaxed">
+            Approving the <span className="font-semibold text-ink">{selectedOpt?.airline}</span> option for{' '}
+            <span className="font-semibold text-ink">{fmtNaira(selectedOpt?.price || 0)}</span> locks that amount in the
+            client&apos;s wallet until the ticket is issued.
+          </p>
+        }
+      />
+
+      {/* Shared reason modal for reject / cancel / re-issue (client powers) */}
+      <Modal
+        open={reasonAction !== null}
+        title={reasonAction ? REASON_COPY[reasonAction].title : ''}
+        onClose={() => setReasonAction(null)}
+        footer={
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" color="ink" onClick={() => setReasonAction(null)} disabled={busy}>Back</Button>
+            <Button color={reasonAction === 'reissue' ? 'brand' : 'red'} loading={busy} disabled={!reason.trim()} onClick={handleReason}>
+              {reasonAction ? REASON_COPY[reasonAction].confirm : ''}
+            </Button>
+          </div>
+        }
+      >
+        <div className="py-1">
+          <label htmlFor="admin-reason" className="block text-[11px] font-semibold text-ink-3 uppercase tracking-wide mb-2">
+            {reasonAction ? REASON_COPY[reasonAction].label : ''}
+          </label>
+          <textarea
+            id="admin-reason"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder={reasonAction ? REASON_COPY[reasonAction].placeholder : ''}
+            className="w-full min-h-[110px] p-3.5 text-sm bg-surface border border-line rounded-xl focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-colors"
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useField } from 'formik';
 import { ChevronsUpDown, Check, type LucideIcon } from 'lucide-react';
 import { FieldShell, FloatingLabel, frameClass, controlClass, leadingIconClass } from './FieldShell';
+
+/** Safe isomorphic useLayoutEffect (avoids SSR warning). */
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export interface ComboOption {
   value: string;
@@ -21,13 +25,7 @@ interface ComboboxFieldProps {
   placeholder?: string;
   hint?: React.ReactNode;
   disabled?: boolean;
-  /** Cap on rendered matches. Defaults to 8. */
   limit?: number;
-  /**
-   * When true the field is search-and-select only: typing just filters, and a
-   * value is committed exclusively by picking an option. Free text that
-   * doesn't match an option is cleared on blur so it can never be submitted.
-   */
   strict?: boolean;
   id?: string;
 }
@@ -36,12 +34,6 @@ function haystack(o: ComboOption) {
   return `${o.label} ${o.value} ${o.description ?? ''} ${o.badge ?? ''} ${o.keywords ?? ''}`.toLowerCase();
 }
 
-/**
- * Accessible autocomplete. Formik holds a plain string (so the existing string
- * schemas keep working) while the dropdown assists with canonical picks. In
- * the default mode typing commits the raw text; in `strict` mode only picking
- * an option commits. Fully keyboard-driven per the WAI-ARIA combobox pattern.
- */
 export function ComboboxField({
   name,
   label,
@@ -63,10 +55,32 @@ export function ComboboxField({
   const inputId = id ?? name;
   const listId = useId();
   const listRef = useRef<HTMLUListElement>(null);
+  const anchorRef = useRef<HTMLDivElement>(null);
+  const [portalPos, setPortalPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
+  // Keep query text in sync when Formik value changes externally.
+  const fieldValue = field.value;
   useEffect(() => {
-    if (!focusedRef.current && field.value !== query) setQuery(field.value ?? '');
-  }, [field.value]);
+    if (!focusedRef.current) setQuery(fieldValue ?? '');
+  }, [fieldValue]);
+
+  // Recompute portal position whenever the dropdown opens or the window scrolls/resizes.
+  const updatePosition = useCallback(() => {
+    if (!anchorRef.current) return;
+    const rect = anchorRef.current.getBoundingClientRect();
+    setPortalPos({ top: rect.bottom + 8, left: rect.left, width: rect.width });
+  }, []);
+
+  useIsomorphicLayoutEffect(() => {
+    if (!open) { setPortalPos(null); return; }
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [open, updatePosition]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -75,7 +89,6 @@ export function ComboboxField({
     return options.filter((o) => { const h = haystack(o); return terms.every((t) => h.includes(t)); }).slice(0, limit);
   }, [query, options, limit]);
 
-  // Scroll the highlighted row into view.
   useEffect(() => {
     if (!open) return;
     listRef.current?.querySelector<HTMLElement>(`[data-idx="${active}"]`)?.scrollIntoView({ block: 'nearest' });
@@ -97,8 +110,6 @@ export function ComboboxField({
 
   function handleInput(text: string) {
     if (strict) {
-      // Typing only filters; a previously committed pick is invalidated so
-      // stale values can't survive an edit.
       setQuery(text);
       if (field.value) void helpers.setValue('');
     } else {
@@ -144,9 +155,55 @@ export function ComboboxField({
 
   const activeId = open && matches[active] ? `${listId}-opt-${active}` : undefined;
 
+  const dropdown =
+    open && portalPos
+      ? createPortal(
+          <ul
+            ref={listRef}
+            id={listId}
+            role="listbox"
+            style={{ position: 'fixed', top: portalPos.top, left: portalPos.left, width: portalPos.width }}
+            className="z-[9999] max-h-72 overflow-y-auto rounded-xl border border-line bg-card shadow-lg py-1.5 animate-fade-in"
+          >
+            {matches.length === 0 ? (
+              <li className="px-3.5 py-3 text-sm text-ink-3">No matches for \u201c{query.trim()}\u201d.</li>
+            ) : (
+              matches.map((o, i) => {
+                const selected = field.value === o.value;
+                return (
+                  <li
+                    key={o.value}
+                    id={`${listId}-opt-${i}`}
+                    data-idx={i}
+                    role="option"
+                    aria-selected={selected}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setActive(i)}
+                    onClick={() => selectOption(o)}
+                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${i === active ? 'bg-brand-soft/70' : 'hover:bg-surface'}`}
+                  >
+                    {o.badge && (
+                      <span className="shrink-0 w-11 text-center text-[11px] font-semibold tracking-wide text-brand bg-brand-soft rounded-md py-1">
+                        {o.badge}
+                      </span>
+                    )}
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-medium text-ink truncate">{o.label}</span>
+                      {o.description && <span className="block text-[11px] text-ink-3 truncate">{o.description}</span>}
+                    </span>
+                    {selected && <Check aria-hidden="true" className="shrink-0 w-4 h-4 text-brand" />}
+                  </li>
+                );
+              })
+            )}
+          </ul>,
+          document.body,
+        )
+      : null;
+
   return (
     <FieldShell error={showError ? meta.error : undefined} hint={hint}>
-      <div className="relative">
+      <div ref={anchorRef} className="relative">
         <div className={frameClass(tone)}>
           <input
             id={inputId}
@@ -173,48 +230,7 @@ export function ComboboxField({
           </FloatingLabel>
           <ChevronsUpDown aria-hidden="true" className="pointer-events-none absolute right-3.5 w-4 h-4 text-ink-3/70" />
         </div>
-
-        {open && (
-          <ul
-            ref={listRef}
-            id={listId}
-            role="listbox"
-            className="absolute z-30 mt-2 w-full max-h-72 overflow-y-auto rounded-xl border border-line bg-card shadow-lg py-1.5 animate-fade-in"
-          >
-            {matches.length === 0 ? (
-              <li className="px-3.5 py-3 text-sm text-ink-3">No matches for “{query.trim()}”.</li>
-            ) : (
-              matches.map((o, i) => {
-                const selected = field.value === o.value;
-                return (
-                  <li
-                    key={o.value}
-                    id={`${listId}-opt-${i}`}
-                    data-idx={i}
-                    role="option"
-                    aria-selected={selected}
-                    // Keep focus on the input so blur doesn't close before click.
-                    onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setActive(i)}
-                    onClick={() => selectOption(o)}
-                    className={`flex items-center gap-3 px-3 py-2 cursor-pointer transition-colors ${i === active ? 'bg-brand-soft/70' : 'hover:bg-surface'}`}
-                  >
-                    {o.badge && (
-                      <span className="shrink-0 w-11 text-center text-[11px] font-semibold tracking-wide text-brand bg-brand-soft rounded-md py-1">
-                        {o.badge}
-                      </span>
-                    )}
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-sm font-medium text-ink truncate">{o.label}</span>
-                      {o.description && <span className="block text-[11px] text-ink-3 truncate">{o.description}</span>}
-                    </span>
-                    {selected && <Check aria-hidden="true" className="shrink-0 w-4 h-4 text-brand" />}
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        )}
+        {dropdown}
       </div>
     </FieldShell>
   );

@@ -66,7 +66,12 @@ const initialValues: RequestFormValues = {
   passengers: [emptyPassenger()],
 };
 
-export function NewRequestContainer() {
+interface NewRequestContainerProps {
+  /** Where to go after a successful submission. Defaults to the client list. */
+  redirectTo?: string;
+}
+
+export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequestContainerProps) {
   const router = useRouter();
   const { options: cityOptions } = useCityOptions();
   const { options: nationalityOptions } = useNationalityOptions();
@@ -85,7 +90,7 @@ export function NewRequestContainer() {
         passportDocs: values.passengers.map((p) => p.file as File),
       });
       toast.success(`Request submitted for ${request.origin} → ${request.destination}.`);
-      router.push('/client/requests');
+      router.push(redirectTo);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not submit your request. Please try again.');
     }

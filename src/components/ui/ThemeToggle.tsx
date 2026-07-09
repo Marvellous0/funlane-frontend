@@ -2,17 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import { activeMode, getStoredMode, setMode, systemMode, type ThemeMode } from '@/lib/theme';
+import { activeMode, getOrgMode, getStoredMode, setMode, systemMode, type ThemeMode } from '@/lib/theme';
 
 /**
  * Light/dark switch. Reads the applied mode on mount (the no-flash script has
  * already set it) so its icon matches, and toggles + persists on click.
+ * Hidden entirely while an admin-enforced org theme is active.
  */
 export function ThemeToggle({ className = '' }: { className?: string }) {
   const [mode, setModeState] = useState<ThemeMode>('light');
   const [ready, setReady] = useState(false);
+  const [locked, setLocked] = useState(false);
 
   useEffect(() => {
+    setLocked(getOrgMode() !== null);
     setModeState(getStoredMode() ?? activeMode() ?? systemMode());
     setReady(true);
   }, []);
@@ -24,6 +27,9 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   }
 
   const isDark = mode === 'dark';
+
+  // The organization enforces a theme — personal toggling is disabled.
+  if (ready && locked) return null;
 
   return (
     <button

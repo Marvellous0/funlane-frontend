@@ -1,11 +1,12 @@
 'use client';
 
+import Link from 'next/link';
 import { useRequestList } from '@/hooks/useRequestsLive';
 import { RequestTable } from '@/components/RequestTable';
 import { Button, Loader, PageHeader, Pagination } from '@/components/ui';
 import { STATUS_META } from '@/services/requestView';
 import type { ApiRequestStatus } from '@/interface';
-import { ClipboardList, AlertTriangle, RefreshCw, Inbox } from 'lucide-react';
+import { ClipboardList, AlertTriangle, RefreshCw, Inbox, Plus } from 'lucide-react';
 
 const STATUS_OPTIONS: ApiRequestStatus[] = [
   'PENDING', 'OPTIONS_SENT', 'APPROVED_LOCKED', 'ISSUED', 'COMPLETED', 'CANCELLED',
@@ -40,6 +41,12 @@ export function AdminRequestsContainer() {
             >
               Refresh
             </Button>
+            <Link
+              href="/admin/new"
+              className="inline-flex items-center justify-center gap-2 bg-white text-navy px-5 py-3 rounded-xl font-semibold text-sm hover:bg-brand-soft transition-colors self-start"
+            >
+              <Plus aria-hidden="true" className="w-4 h-4" /> New request
+            </Link>
           </>
         }
       />
