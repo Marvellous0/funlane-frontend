@@ -29,6 +29,8 @@ export interface RequestVM {
   passengerCount: number;
   passengers: PassengerView[];
   quoteOptions: QuoteOptionView[];
+  /** The option the client approved, once the request is past OPTIONS_SENT. */
+  approvedOption: QuoteOptionView | null;
   rejectionReason: string | null;
   cancellationReason: string | null;
   ticketDownloadUrl: string | null;
@@ -84,6 +86,7 @@ export function summaryToVM(s: RequestSummaryView): RequestVM {
     passengerCount: s.passengerCount,
     passengers: [],
     quoteOptions: [],
+    approvedOption: null,
     rejectionReason: null,
     cancellationReason: null,
     ticketDownloadUrl: null,
@@ -92,6 +95,26 @@ export function summaryToVM(s: RequestSummaryView): RequestVM {
     completedAt: null,
     cancelledAt: null,
   };
+}
+
+/**
+ * Resolves the approved option once the request is past client review.
+ * Tolerates the id field arriving under different names (backend versions),
+ * and falls back to the sole remaining option when only one exists.
+ */
+function resolveApprovedOption(r: TravelRequestView): QuoteOptionView | null {
+  const postApproval = r.status === 'APPROVED_LOCKED' || r.status === 'ISSUED' || r.status === 'COMPLETED';
+  if (!postApproval) return null;
+
+  const raw = r as TravelRequestView & Record<string, unknown>;
+  const approvedId = (raw.approvedOptionId ?? raw.selectedOptionId ?? raw.approvedQuoteOptionId ?? null) as
+    | string
+    | null;
+
+  return (
+    r.quoteOptions.find((o) => o.id === approvedId) ??
+    (r.quoteOptions.length === 1 ? r.quoteOptions[0] : null)
+  );
 }
 
 export function detailToVM(r: TravelRequestView): RequestVM {
@@ -112,6 +135,7 @@ export function detailToVM(r: TravelRequestView): RequestVM {
     passengerCount: r.passengers.length,
     passengers: r.passengers,
     quoteOptions: r.quoteOptions,
+    approvedOption: resolveApprovedOption(r),
     rejectionReason: r.rejectionReason,
     cancellationReason: r.cancellationReason,
     ticketDownloadUrl: r.ticketDownloadUrl,

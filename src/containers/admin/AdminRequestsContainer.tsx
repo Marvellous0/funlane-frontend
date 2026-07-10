@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRequestList } from '@/hooks/useRequestsLive';
+import { useAgentDirectory } from '@/hooks/useAgentDirectory';
 import { RequestTable } from '@/components/RequestTable';
 import { Button, Loader, PageHeader, Pagination } from '@/components/ui';
 import { STATUS_META } from '@/services/requestView';
@@ -14,6 +15,7 @@ const STATUS_OPTIONS: ApiRequestStatus[] = [
 
 export function AdminRequestsContainer() {
   const { items, pagination, loading, error, params, setParams, refresh } = useRequestList('all', { page: 1, limit: 20 });
+  const { agentName } = useAgentDirectory();
 
   function setStatus(status: string) {
     setParams({ ...params, page: 1, status: (status || undefined) as ApiRequestStatus | undefined });
@@ -71,7 +73,7 @@ export function AdminRequestsContainer() {
         ) : loading ? (
           <Loader label="Loading requests…" />
         ) : items.length ? (
-          <RequestTable requests={items} hrefFor={(id) => `/admin/requests/${id}`} showAssignment />
+          <RequestTable requests={items} hrefFor={(id) => `/admin/requests/${id}`} showAssignment agentNameFor={agentName} />
         ) : (
           <div className="p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-surface flex items-center justify-center mx-auto mb-4">

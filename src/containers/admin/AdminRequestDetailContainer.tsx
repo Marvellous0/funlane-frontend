@@ -4,20 +4,26 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Formik, Form, type FormikHelpers } from 'formik';
 import { useRequestDetail } from '@/hooks/useRequestsLive';
+import { useAgentDirectory } from '@/hooks/useAgentDirectory';
 import { StatusBadge, ProgressSteps, Timeline, EmptyState, Loader, Modal, Button, ConfirmDialog } from '@/components/ui';
 import { TextField, SelectField, DateTimeField } from '@/components/form';
 import { AIRLINES } from '@/lib/constants';
 import { quoteOptionSchema } from '@/lib/validation/schemas';
+import { STATUS_META } from '@/services/requestView';
 import { fmtNaira, fmtDate, fmtDateTime, fmtDepartTime } from '@/utils/format';
 import { routeText } from '@/utils/request.utils';
-import type { HistoryEntry, QuoteOptionView } from '@/interface';
+import type { ApiRequestStatus, HistoryEntry, QuoteOptionView } from '@/interface';
 import type { RequestVM } from '@/services/requestView';
 import {
   HelpCircle, ChevronLeft, Plane, MapPin, Repeat, Calendar, Undo2, PlaneTakeoff,
-  Coins, RefreshCw, UserCog, Lightbulb, Hand, Plus, Send, X, Paperclip, FileText,
-  CheckCircle2, Lock, Tag, Banknote, Info, Wrench,
+  Coins, RefreshCw, UserCog, Lightbulb, Plus, Send, X, Paperclip, FileText,
+  CheckCircle2, Lock, Tag, Banknote, Info, Wrench, ShieldAlert, Ban, GitBranch,
 } from 'lucide-react';
 import type { ElementType } from 'react';
+
+const ALL_STATUSES: ApiRequestStatus[] = [
+  'PENDING', 'OPTIONS_SENT', 'APPROVED_LOCKED', 'ISSUED', 'COMPLETED', 'CANCELLED',
+];
 
 function synthTimeline(r: RequestVM): HistoryEntry[] {
   const items: HistoryEntry[] = [{ ts: r.createdAt, text: 'Request submitted by client' }];
@@ -39,7 +45,7 @@ interface QuoteDraftValues {
 const blankDraft = (): QuoteDraftValues => ({ airline: AIRLINES[0], label: '', departureTime: '', price: '', details: '' });
 
 /** Which reason-collecting action is open, if any. */
-type ReasonAction = 'reject' | 'cancel' | 'reissue';
+type ReasonAction = 'reject' | 'cancel' | 'admin-cancel';
 
 const REASON_COPY: Record<ReasonAction, { title: string; label: string; confirm: string; placeholder: string }> = {
   reject: {
@@ -54,32 +60,38 @@ const REASON_COPY: Record<ReasonAction, { title: string; label: string; confirm:
     confirm: 'Cancel request',
     placeholder: 'e.g. Trip postponed…',
   },
-  reissue: {
-    title: 'Request re-issue (as client)',
-    label: 'What needs to be corrected?',
-    confirm: 'Send re-issue request',
-    placeholder: 'e.g. Passport number was mistyped…',
+  'admin-cancel': {
+    title: 'Force-cancel request (admin)',
+    label: 'Reason for force-cancelling',
+    confirm: 'Force-cancel',
+    placeholder: 'e.g. Duplicate request, client unreachable…',
   },
 };
 
 /**
- * Admin request detail. Read-only overview plus a full lifecycle console:
- * the admin can act as the agent (claim, quote, issue, complete) and as the
- * client (approve, reject, cancel, re-issue) to exercise the whole flow —
- * built to make end-to-end testing painless.
+ * Admin request detail. Read-only overview plus a full lifecycle console
+ * mirroring the backend's ADMIN grants: quote-building, sending, approving,
+ * rejecting, cancelling, issuing and completing on any request — plus the
+ * admin-only overrides (agent assignment, force-cancel, force-status).
+ * Admins don't claim; they assign an agent (PATCH /requests/{id}/assign).
  */
 export function AdminRequestDetailContainer({ id }: { id: string }) {
   const {
     request: r, loading, error, busy, refresh,
-    claim, addOption, removeOption, sendOptions, approve, reject, cancel, reissue, complete, uploadTicket,
+    addOption, removeOption, sendOptions, approve, reject, cancel, complete, uploadTicket,
+    assignAgent, adminCancel, forceStatus,
   } = useRequestDetail(id);
 
+  const { agents, agentName } = useAgentDirectory();
+  const [agentId, setAgentId] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [ticketFile, setTicketFile] = useState<File | null>(null);
   const [selectedOpt, setSelectedOpt] = useState<QuoteOptionView | null>(null);
   const [approveOpen, setApproveOpen] = useState(false);
   const [reasonAction, setReasonAction] = useState<ReasonAction | null>(null);
   const [reason, setReason] = useState('');
+  const [targetStatus, setTargetStatus] = useState<ApiRequestStatus | ''>('');
+  const [forceOpen, setForceOpen] = useState(false);
 
   if (loading) return <div className="max-w-5xl mx-auto"><Loader label="Loading request…" size="lg" /></div>;
   if (error)
@@ -96,6 +108,11 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
       </div>
     );
   if (!r) return <EmptyState icon={HelpCircle}>Request not found.</EmptyState>;
+
+  const isTerminal = r.status === 'COMPLETED' || r.status === 'CANCELLED';
+  /** Options can be staged while PENDING or OPTIONS_SENT (backend rule). */
+  const canEditOptions = r.status === 'PENDING' || r.status === 'OPTIONS_SENT';
+  const canForceCancel = r.status === 'PENDING' || r.status === 'OPTIONS_SENT' || r.status === 'APPROVED_LOCKED';
 
   async function commitOption(values: QuoteDraftValues, helpers: FormikHelpers<QuoteDraftValues>) {
     const ok = await addOption({
@@ -119,11 +136,20 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
 
   async function handleReason() {
     if (!reasonAction || !reason.trim()) return;
-    const run = { reject, cancel, reissue }[reasonAction];
+    const run = { reject, cancel, 'admin-cancel': adminCancel }[reasonAction];
     const ok = await run(reason.trim());
     if (ok) {
       setReasonAction(null);
       setReason('');
+    }
+  }
+
+  async function handleForceStatus() {
+    if (!targetStatus) return;
+    const ok = await forceStatus(targetStatus);
+    if (ok) {
+      setForceOpen(false);
+      setTargetStatus('');
     }
   }
 
@@ -132,6 +158,9 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
     const ok = await uploadTicket(ticketFile);
     if (ok) setTicketFile(null);
   }
+
+  const selectClass =
+    'h-11 px-3 bg-card border border-line rounded-lg text-sm text-ink shadow-sm focus:outline-none focus:border-brand min-w-0';
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
@@ -149,7 +178,8 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
             <StatusBadge status={r.status} />
           </div>
           <p className="text-ink-3 text-sm mt-1">
-            Ref <span className="font-medium text-ink-2">{r.ref}</span> · {r.assignedAgentId ? 'Claimed' : 'Unassigned'} · Submitted {fmtDate(r.createdAt)}
+            Ref <span className="font-medium text-ink-2">{r.ref}</span> ·{' '}
+            {r.assignedAgentId ? <>Assigned to <span className="font-medium text-ink-2">{agentName(r.assignedAgentId)}</span></> : 'Unassigned'} · Submitted {fmtDate(r.createdAt)}
           </p>
         </div>
       </div>
@@ -160,25 +190,19 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
 
       <div className="grid lg:grid-cols-3 gap-6 items-start">
         <div className="lg:col-span-2 min-w-0 space-y-6">
-          {/* ------- Admin lifecycle console ------- */}
-          <section className="bg-card rounded-2xl border-2 border-dashed border-brand/30 p-6 space-y-5">
+          {/* ------- Lifecycle console (agent + client powers) ------- */}
+          <section className="bg-card rounded-2xl border-2 border-dashed border-brand/30 p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-2.5">
               <span className="w-9 h-9 rounded-lg bg-brand-soft text-brand flex items-center justify-center shrink-0">
                 <Wrench aria-hidden="true" className="w-[18px] h-[18px]" />
               </span>
               <div>
                 <h2 className="text-base font-semibold text-ink">Lifecycle console</h2>
-                <p className="text-xs text-ink-3">Act as the agent or the client to move this request through any stage.</p>
+                <p className="text-xs text-ink-3">Act as the agent or the client to move this request through the flow.</p>
               </div>
             </div>
 
-            {r.status === 'PENDING' && !r.assignedAgentId && (
-              <Button color="brand" leftIcon={Hand} loading={busy} onClick={claim}>
-                Claim request (as agent)
-              </Button>
-            )}
-
-            {r.status === 'PENDING' && r.assignedAgentId && (
+            {canEditOptions && (
               <div className="space-y-4">
                 <div className="space-y-2.5">
                   {r.quoteOptions.map((o) => (
@@ -200,15 +224,18 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
                   <Button color="brand" variant="outline" leftIcon={Plus} onClick={() => setAddOpen(true)} disabled={busy}>
                     Add option
                   </Button>
-                  <Button color="brand" leftIcon={Send} loading={busy} disabled={!r.quoteOptions.length} onClick={sendOptions}>
-                    Send options to client
-                  </Button>
+                  {r.status === 'PENDING' && (
+                    <Button color="brand" leftIcon={Send} loading={busy} disabled={!r.quoteOptions.length} onClick={sendOptions}>
+                      Send options to client
+                    </Button>
+                  )}
                 </div>
               </div>
             )}
 
             {r.status === 'OPTIONS_SENT' && (
-              <div className="space-y-4">
+              <div className="space-y-4 border-t border-line pt-5">
+                <p className="text-[11px] uppercase font-semibold text-ink-3 tracking-wide">Client decisions</p>
                 <div className="space-y-2.5">
                   {r.quoteOptions.map((o) => (
                     <div key={o.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-surface rounded-xl border border-line">
@@ -247,22 +274,95 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
             )}
 
             {r.status === 'ISSUED' && (
-              <div className="flex flex-wrap gap-3">
-                <Button color="green" leftIcon={CheckCircle2} loading={busy} onClick={complete}>
-                  Mark complete &amp; capture funds
-                </Button>
-                <Button color="brand" variant="outline" leftIcon={RefreshCw} onClick={() => setReasonAction('reissue')} disabled={busy}>
-                  Request re-issue (as client)
-                </Button>
-              </div>
+              <Button color="green" leftIcon={CheckCircle2} loading={busy} onClick={complete}>
+                Mark complete &amp; capture funds
+              </Button>
             )}
 
-            {(r.status === 'COMPLETED' || r.status === 'CANCELLED') && (
+            {isTerminal && (
               <p className="text-sm text-ink-3">
                 This request is {r.status === 'COMPLETED' ? 'completed' : 'cancelled'} — no further lifecycle actions are available.
               </p>
             )}
           </section>
+
+          {/* ------- Admin overrides (assignment + force tools) ------- */}
+          {!isTerminal && (
+            <section className="bg-card rounded-2xl border-2 border-dashed border-red/30 p-5 sm:p-6 space-y-5">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-lg bg-red-soft text-red flex items-center justify-center shrink-0">
+                  <ShieldAlert aria-hidden="true" className="w-[18px] h-[18px]" />
+                </span>
+                <div>
+                  <h2 className="text-base font-semibold text-ink">Admin overrides</h2>
+                  <p className="text-xs text-ink-3">Bypass the normal rules. Use with care.</p>
+                </div>
+              </div>
+
+              {/* Agent assignment — replaces claiming for admins */}
+              <div className="space-y-2">
+                <p className="text-[11px] uppercase font-semibold text-ink-3 tracking-wide">Agent assignment</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <select
+                    value={agentId}
+                    onChange={(e) => setAgentId(e.target.value)}
+                    aria-label="Select agent"
+                    className={`${selectClass} flex-1`}
+                  >
+                    <option value="">Select an agent…</option>
+                    {agents.map((a) => (
+                      <option key={a.id} value={a.id}>{a.name} ({a.email})</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-3">
+                    <Button color="ink" leftIcon={UserCog} loading={busy} disabled={!agentId} onClick={() => assignAgent(agentId)}>
+                      Assign
+                    </Button>
+                    {r.assignedAgentId && (
+                      <Button color="ink" variant="outline" loading={busy} onClick={() => assignAgent(null)}>
+                        Unassign
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-ink-3">
+                  {r.assignedAgentId ? `Currently assigned to ${agentName(r.assignedAgentId)}.` : 'Currently in the shared queue (unassigned).'}
+                </p>
+              </div>
+
+              {/* Force tools */}
+              <div className="space-y-2 border-t border-line pt-5">
+                <p className="text-[11px] uppercase font-semibold text-ink-3 tracking-wide">Force tools</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <select
+                    value={targetStatus}
+                    onChange={(e) => setTargetStatus(e.target.value as ApiRequestStatus | '')}
+                    aria-label="Force status"
+                    className={`${selectClass} flex-1`}
+                  >
+                    <option value="">Force status to…</option>
+                    {ALL_STATUSES.filter((s) => s !== r.status).map((s) => (
+                      <option key={s} value={s}>{STATUS_META[s]?.label ?? s}</option>
+                    ))}
+                  </select>
+                  <div className="flex gap-3">
+                    <Button color="red" variant="outline" leftIcon={GitBranch} disabled={!targetStatus || busy} onClick={() => setForceOpen(true)}>
+                      Force status
+                    </Button>
+                    {canForceCancel && (
+                      <Button color="red" leftIcon={Ban} disabled={busy} onClick={() => setReasonAction('admin-cancel')}>
+                        Force-cancel
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-ink-3">
+                  Forcing a status skips wallet locking/release/capture — reconcile the wallet manually if you cross a funds boundary.
+                  Force-cancel releases locked funds and works on any request before it&apos;s issued.
+                </p>
+              </div>
+            </section>
+          )}
 
           {/* Booking details */}
           <section className="bg-card rounded-2xl border border-line shadow-card p-6">
@@ -300,8 +400,8 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
             </div>
           </section>
 
-          {/* Quote options (read-only recap) */}
-          {r.quoteOptions.length > 0 && (
+          {/* Quote options (read-only recap once past staging) */}
+          {!canEditOptions && r.quoteOptions.length > 0 && (
             <section className="bg-card rounded-2xl border border-line shadow-card p-6">
               <h2 className="text-lg font-semibold text-ink mb-4">Quote options</h2>
               <div className="grid gap-3">
@@ -334,7 +434,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
           <div className="bg-card rounded-2xl border border-line shadow-card p-6">
             <h3 className="text-base font-semibold text-ink mb-4">Overview</h3>
             <dl className="space-y-3.5 text-sm">
-              <Meta label="Assignment" icon={UserCog} value={r.assignedAgentId ? `Agent ${r.assignedAgentId.slice(0, 8)}` : 'Unassigned'} />
+              <Meta label="Assignment" icon={UserCog} value={agentName(r.assignedAgentId) ?? 'Unassigned'} />
               <Meta label="Passengers" value={String(r.passengers.length || r.passengerCount)} />
               <Meta label="Submitted" value={fmtDateTime(r.createdAt)} />
               {r.issuedAt && <Meta label="Issued" value={fmtDateTime(r.issuedAt)} />}
@@ -397,12 +497,31 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
           <p className="text-sm text-ink-2 leading-relaxed">
             Approving the <span className="font-semibold text-ink">{selectedOpt?.airline}</span> option for{' '}
             <span className="font-semibold text-ink">{fmtNaira(selectedOpt?.price || 0)}</span> locks that amount in the
-            client&apos;s wallet until the ticket is issued.
+            <span className="font-semibold text-ink"> request owner&apos;s</span> wallet (never yours) until the ticket is issued.
           </p>
         }
       />
 
-      {/* Shared reason modal for reject / cancel / re-issue (client powers) */}
+      {/* Force-status confirmation */}
+      <ConfirmDialog
+        open={forceOpen}
+        title="Force status (admin)"
+        confirmLabel={`Yes, force to ${targetStatus || '—'}`}
+        cancelLabel="Back"
+        loading={busy}
+        onConfirm={handleForceStatus}
+        onCancel={() => setForceOpen(false)}
+        message={
+          <p className="text-sm text-ink-2 leading-relaxed">
+            This bypasses the state machine entirely and does <strong className="text-ink">not</strong> lock, release or
+            capture wallet funds. If forcing from <span className="font-mono text-xs">{r.status}</span> to{' '}
+            <span className="font-mono text-xs">{targetStatus}</span> crosses a funds boundary, reconcile the wallet
+            manually afterwards. Continue?
+          </p>
+        }
+      />
+
+      {/* Shared reason modal for reject / cancel / force-cancel */}
       <Modal
         open={reasonAction !== null}
         title={reasonAction ? REASON_COPY[reasonAction].title : ''}
@@ -410,7 +529,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
         footer={
           <div className="flex justify-end gap-3">
             <Button variant="outline" color="ink" onClick={() => setReasonAction(null)} disabled={busy}>Back</Button>
-            <Button color={reasonAction === 'reissue' ? 'brand' : 'red'} loading={busy} disabled={!reason.trim()} onClick={handleReason}>
+            <Button color="red" loading={busy} disabled={!reason.trim()} onClick={handleReason}>
               {reasonAction ? REASON_COPY[reasonAction].confirm : ''}
             </Button>
           </div>
@@ -425,7 +544,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder={reasonAction ? REASON_COPY[reasonAction].placeholder : ''}
-            className="w-full min-h-[110px] p-3.5 text-sm bg-surface border border-line rounded-xl focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand-soft transition-colors"
+            className="w-full min-h-[110px] p-3.5 text-sm bg-surface border border-line rounded-xl focus:outline-none focus:border-red focus:ring-2 focus:ring-red-soft transition-colors"
           />
         </div>
       </Modal>

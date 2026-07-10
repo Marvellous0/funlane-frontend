@@ -58,6 +58,8 @@ export interface TravelRequestView {
   preferredAirline?: string;
   preferredTime?: string;
   assignedAgentId: string | null;
+  /** Id of the quote option the client approved (null before approval). */
+  approvedOptionId?: string | null;
   rejectionReason: string | null;
   issuedAt: string | null;
   completedAt: string | null;

@@ -156,6 +156,12 @@ export function useRequestDetail(id: string) {
     reject: (reason: string) => run(() => requestsApi.reject(id, reason), 'Sent back to the agent.'),
     cancel: (reason: string) => run(() => requestsApi.cancel(id, reason), 'Request cancelled — funds released.'),
     reissue: (reason: string) => run(() => requestsApi.reissue(id, reason), 'Re-issue request sent to the agency.'),
+    assignAgent: (agentId: string | null) =>
+      run(() => requestsApi.assignAgent(id, agentId), agentId ? 'Agent assigned.' : 'Returned to the shared queue.'),
+    adminCancel: (reason: string) =>
+      run(() => requestsApi.adminCancel(id, reason), 'Request force-cancelled — locked funds released.'),
+    forceStatus: (status: ApiRequestStatus) =>
+      run(() => requestsApi.forceStatus(id, status), `Status forced to ${status}.`),
     complete: () => run(() => requestsApi.complete(id), 'Marked complete — funds captured.'),
     uploadTicket: (file: File) => run(() => requestsApi.uploadTicket(id, file), 'Ticket uploaded.'),
   };

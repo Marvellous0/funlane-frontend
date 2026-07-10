@@ -1,13 +1,16 @@
 'use client';
 
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Formik, Form, FieldArray } from 'formik';
-import { requestsApi, ApiError } from '@/api';
+import * as yup from 'yup';
+import { requestsApi, usersApi, ApiError } from '@/api';
+import { useAuthStore } from '@/store/useAuthStore';
 import { AIRLINES } from '@/lib/constants';
 import { BUDGET_TIERS } from '@/services/requestView';
 import { newRequestSchema } from '@/lib/validation/schemas';
 import { useCityOptions, useNationalityOptions } from '@/hooks/useCountryData';
-import type { ApiBudgetTier } from '@/interface';
+import type { AdminUserView, ApiBudgetTier } from '@/interface';
 import { toast } from 'react-toastify';
 import { PageHeader } from '@/components/ui';
 import { TextField, SelectField, DateField, FileField, SegmentedField, ComboboxField } from '@/components/form';
@@ -34,6 +37,8 @@ interface PassengerValues {
 }
 
 interface RequestFormValues {
+  /** Only used when an admin books on a client's behalf. */
+  clientId: string;
   tripType: 'oneway' | 'round';
   origin: string;
   destination: string;
@@ -55,6 +60,7 @@ const emptyPassenger = (): PassengerValues => ({
 });
 
 const initialValues: RequestFormValues = {
+  clientId: '',
   tripType: 'oneway',
   origin: '',
   destination: '',
@@ -76,9 +82,33 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
   const { options: cityOptions } = useCityOptions();
   const { options: nationalityOptions } = useNationalityOptions();
 
+  // Admins book on a client's behalf — the backend requires a clientId.
+  const isAdmin = useAuthStore((s) => s.user?.role) === 'admin';
+  const [clients, setClients] = useState<AdminUserView[]>([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    usersApi
+      .listUsers({ role: 'CLIENT', limit: 100 })
+      .then((res) => setClients(res.users))
+      .catch(() => setClients([]));
+  }, [isAdmin]);
+
+  const schema = useMemo(
+    () =>
+      isAdmin
+        ? newRequestSchema.concat(yup.object({ clientId: yup.string().required('Select the client this booking is for.') }))
+        : newRequestSchema,
+    [isAdmin],
+  );
+
+  /** Admins get an extra "Client" section, so later steps shift by one. */
+  const step = (n: number) => (isAdmin ? n + 1 : n);
+
   async function handleSubmit(values: RequestFormValues) {
     try {
       const { request } = await requestsApi.createRequest({
+        clientId: isAdmin ? values.clientId : undefined,
         origin: values.origin.trim(),
         destination: values.destination.trim(),
         departureDate: values.departureDate,
@@ -106,10 +136,26 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
         subtitle="Provide your trip details and we'll prepare a tailored quotation."
       />
 
-      <Formik initialValues={initialValues} validationSchema={newRequestSchema} onSubmit={handleSubmit}>
+      <Formik initialValues={initialValues} validationSchema={schema} onSubmit={handleSubmit}>
         {({ values, isSubmitting }) => (
           <Form noValidate className="space-y-5">
-            <Section step={1} title="Route &amp; trip type">
+            {isAdmin && (
+              <Section step={1} title="Client">
+                <SelectField name="clientId" label="Booking for client" icon={User}>
+                  <option value="">Select a client…</option>
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.email}
+                    </option>
+                  ))}
+                </SelectField>
+                <p className="text-xs text-ink-3">
+                  The request will belong to this client — approval locks funds in <em>their</em> wallet.
+                </p>
+              </Section>
+            )}
+
+            <Section step={step(1)} title="Route &amp; trip type">
               <SegmentedField
                 name="tripType"
                 label="Trip type"
@@ -125,7 +171,7 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
               </div>
             </Section>
 
-            <Section step={2} title="Schedule &amp; budget">
+            <Section step={step(2)} title="Schedule &amp; budget">
               <div className="grid sm:grid-cols-2 gap-4">
                 <DateField name="departureDate" label="Departure date" />
                 {values.tripType === 'round' && (
@@ -160,7 +206,7 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
             <FieldArray name="passengers">
               {({ push, remove }) => (
                 <Section
-                  step={3}
+                  step={step(3)}
                   title="Passengers"
                   action={
                     <button

@@ -10,13 +10,18 @@ import type { RequestVM } from '@/services/requestView';
 interface RequestTableProps {
   requests: RequestVM[];
   hrefFor: (id: string) => string;
-  /** Show an assignment column (agent views). */
+  /** Show an assignment column (agent/admin views). */
   showAssignment?: boolean;
+  /**
+   * Resolves an assigned agent id to a display name (admin views, where the
+   * agent directory is available). Falls back to "Claimed" when omitted.
+   */
+  agentNameFor?: (id: string | null) => string | null;
 }
 
 const th = 'px-5 py-3.5 text-[11px] uppercase font-semibold text-ink-3 tracking-wide whitespace-nowrap';
 
-export function RequestTable({ requests, hrefFor, showAssignment = false }: RequestTableProps) {
+export function RequestTable({ requests, hrefFor, showAssignment = false, agentNameFor }: RequestTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left border-collapse min-w-[700px]">
@@ -60,7 +65,9 @@ export function RequestTable({ requests, hrefFor, showAssignment = false }: Requ
               {showAssignment && (
                 <td className="px-5 py-4">
                   <span className={`text-xs font-medium ${r.assignedAgentId ? 'text-ink-2' : 'text-amber-dark'}`}>
-                    {r.assignedAgentId ? 'Claimed' : 'Unassigned'}
+                    {r.assignedAgentId
+                      ? agentNameFor?.(r.assignedAgentId) ?? 'Claimed'
+                      : 'Unassigned'}
                   </span>
                 </td>
               )}

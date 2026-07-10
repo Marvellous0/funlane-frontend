@@ -10,7 +10,7 @@ import { routeText } from '@/utils/request.utils';
 import type { HistoryEntry, QuoteOptionView } from '@/interface';
 import {
   HelpCircle, ChevronLeft, Plane, Lightbulb, MapPin,
-  Repeat, Calendar, Undo2, PlaneTakeoff, Coins, Lock, RefreshCw,
+  Repeat, Calendar, Undo2, PlaneTakeoff, Coins, Lock, RefreshCw, BadgeCheck,
 } from 'lucide-react';
 import type { ElementType } from 'react';
 
@@ -133,6 +133,32 @@ export function ClientRequestDetailContainer({ id }: { id: string }) {
                 <p className="text-ink-2 text-sm mb-2">Don&apos;t see something you like?</p>
                 <button onClick={() => setRejectOpen(true)} className="text-red font-semibold text-sm hover:underline">Request different options</button>
               </div>
+            </section>
+          )}
+
+          {/* The option the client approved — visible from approval onwards. */}
+          {r.approvedOption && (
+            <section className="bg-card rounded-2xl border border-green/30 shadow-card p-5 sm:p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <BadgeCheck aria-hidden="true" className="w-5 h-5 text-green" />
+                <h2 className="text-lg font-semibold text-ink">Your approved option</h2>
+              </div>
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+                <div>
+                  <div className="font-semibold text-ink">{r.approvedOption.airline}</div>
+                  <div className="text-xs text-ink-3 mt-0.5">{r.approvedOption.label}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-wide text-ink-3 mb-0.5">Departs</div>
+                  <div className="font-semibold text-ink">{fmtDepartTime(r.approvedOption.departureTime)}</div>
+                </div>
+                <div className="text-lg font-bold text-green-dark">{fmtNaira(r.approvedOption.price)}</div>
+              </div>
+              {r.approvedOption.details && (
+                <div className="mt-3 pt-3 border-t border-line text-xs text-ink-3 flex items-center gap-1.5">
+                  <Lightbulb aria-hidden="true" className="w-3.5 h-3.5 shrink-0" />{r.approvedOption.details}
+                </div>
+              )}
             </section>
           )}
 

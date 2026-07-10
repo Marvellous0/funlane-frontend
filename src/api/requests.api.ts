@@ -10,6 +10,8 @@ import type {
 import { apiFetch } from './client';
 
 export interface CreateRequestInput {
+  /** Required when an ADMIN creates a request on a client's behalf. */
+  clientId?: string;
   origin: string;
   destination: string;
   departureDate: string;
@@ -30,6 +32,7 @@ interface ListParams {
 /** POST /requests — multipart: trip fields + passengers JSON + one scan per passenger. */
 export function createRequest(input: CreateRequestInput): Promise<RequestResponse> {
   const fd = new FormData();
+  if (input.clientId) fd.set('clientId', input.clientId);
   fd.set('origin', input.origin);
   fd.set('destination', input.destination);
   fd.set('departureDate', input.departureDate);
@@ -79,9 +82,40 @@ export function getOne(id: string): Promise<RequestResponse> {
   return apiFetch<RequestResponse>(`/requests/${id}`, { auth: true });
 }
 
-/** POST /requests/{id}/claim — agent claims an unassigned request. */
+/**
+ * POST /requests/{id}/claim — AGENT only (atomic: fails if no longer PENDING
+ * and unassigned). Admins must use `assignAgent` instead.
+ */
 export function claim(id: string): Promise<RequestResponse> {
   return apiFetch<RequestResponse>(`/requests/${id}/claim`, { method: 'POST', auth: true });
+}
+
+/**
+ * PATCH /requests/{id}/assign — ADMIN: reassign or unassign the agent,
+ * bypassing the normal claim rule. Pass `null` to return the request to the
+ * shared queue. Blocked once COMPLETED or CANCELLED.
+ */
+export function assignAgent(id: string, agentId: string | null): Promise<RequestResponse> {
+  return apiFetch<RequestResponse>(`/requests/${id}/assign`, { method: 'PATCH', body: { agentId }, auth: true });
+}
+
+/**
+ * POST /requests/{id}/admin-cancel — ADMIN: force-cancel any PENDING,
+ * OPTIONS_SENT or APPROVED_LOCKED request regardless of owner, releasing any
+ * locked wallet funds. Blocked once ISSUED, COMPLETED or CANCELLED.
+ */
+export function adminCancel(id: string, reason: string): Promise<RequestResponse> {
+  return apiFetch<RequestResponse>(`/requests/${id}/admin-cancel`, { method: 'POST', body: { reason }, auth: true });
+}
+
+/**
+ * PATCH /requests/{id}/status — ADMIN: force the request directly into any
+ * status. Bypasses the state machine and does NOT lock/release/capture wallet
+ * funds — reconcile the wallet manually when crossing an
+ * APPROVED_LOCKED/COMPLETED boundary.
+ */
+export function forceStatus(id: string, status: ApiRequestStatus): Promise<RequestResponse> {
+  return apiFetch<RequestResponse>(`/requests/${id}/status`, { method: 'PATCH', body: { status }, auth: true });
 }
 
 /** POST /requests/{id}/options — add a quote option. */

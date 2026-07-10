@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Formik, Form, type FormikHelpers } from 'formik';
 import { useRequestDetail } from '@/hooks/useRequestsLive';
+import { useAuthStore } from '@/store/useAuthStore';
 import { StatusBadge, ProgressSteps, Timeline, Modal, EmptyState, Loader } from '@/components/ui';
 import { AIRLINES } from '@/lib/constants';
 import { quoteOptionSchema } from '@/lib/validation/schemas';
@@ -38,6 +39,7 @@ function synthTimeline(r: RequestVM): HistoryEntry[] {
 
 export function AgentRequestDetailContainer({ id }: { id: string }) {
   const { request: r, loading, error, busy, refresh, claim, addOption, removeOption, sendOptions, complete, uploadTicket } = useRequestDetail(id);
+  const me = useAuthStore((s) => s.user);
 
   const [addOpen, setAddOpen] = useState(false);
   const [ticketFile, setTicketFile] = useState<File | null>(null);
@@ -92,7 +94,15 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
             <h1 className="text-xl font-bold text-ink">{r.ref}</h1>
             <StatusBadge status={r.status} />
           </div>
-          <p className="text-ink-3 text-sm mt-1">{routeText(r)} · {r.assignedAgentId ? 'Claimed' : 'Unassigned'} · Submitted {fmtDate(r.createdAt)}</p>
+          <p className="text-ink-3 text-sm mt-1">
+            {routeText(r)} ·{' '}
+            {r.assignedAgentId
+              ? r.assignedAgentId === me?.id
+                ? <>Claimed by <span className="font-medium text-ink-2">you ({me?.name})</span></>
+                : 'Claimed'
+              : 'Unassigned'}{' '}
+            · Submitted {fmtDate(r.createdAt)}
+          </p>
         </div>
       </div>
 
