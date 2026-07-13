@@ -9,9 +9,9 @@ function ThemeToggle({ isDark, onClick }: { isDark: boolean; onClick: () => void
     <button
       onClick={onClick}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="w-10 h-10 flex items-center justify-center rounded-lg border border-line dark:border-white/15 text-ink dark:text-white hover:bg-surface dark:hover:bg-white/10 transition-colors"
+      className="w-9 h-9 flex items-center justify-center rounded-full border border-line dark:border-white/15 text-ink dark:text-white hover:bg-surface dark:hover:bg-white/10 transition-colors"
     >
-      {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
     </button>
   );
 }
@@ -49,17 +49,18 @@ export const NavBar = ({ isDark, menuOpen, scrolled, setMenuOpen, toggleTheme, t
 
                 <div className="hidden lg:flex items-center gap-3">
                     {!themeLocked && <ThemeToggle isDark={isDark} onClick={toggleTheme} />}
-                    <Link href="/agent/login" className="text-sm font-medium text-ink-3 dark:text-white/60 hover:text-ink dark:hover:text-white transition-colors">
+                    <Link href="/agent/login" className="text-[13px] font-semibold text-ink-3 dark:text-white/60 hover:text-ink dark:hover:text-white transition-colors ml-1">
                         Agent portal
                     </Link>
-                    <Link href="/login" className="text-sm font-semibold px-4 h-10 inline-flex items-center rounded-lg border border-line dark:border-white/15 text-ink dark:text-white hover:bg-surface dark:hover:bg-white/10 transition-colors">
+                    <div className="w-px h-4 bg-line dark:bg-white/15 mx-1.5 hidden sm:block"></div>
+                    <Link href="/login" className="text-[13px] font-semibold px-4 h-9 inline-flex items-center rounded-full border border-line dark:border-white/15 text-ink dark:text-white hover:bg-surface dark:hover:bg-white/10 transition-colors">
                         Sign in
                     </Link>
                     <Link
                         href="/signup"
-                        className="text-sm font-semibold px-5 h-10 inline-flex items-center gap-1.5 rounded-lg bg-brand text-white hover:bg-brand-dark transition-colors shadow-[0_8px_30px_-8px_rgba(22,112,181,0.8)]"
+                        className="text-[13px] font-semibold px-5 h-9 inline-flex items-center gap-1.5 rounded-full bg-brand text-white hover:bg-brand-dark transition-all shadow-sm hover:shadow-md hover:-translate-y-0.5"
                     >
-                        Get started <ArrowRight className="w-4 h-4" />
+                        Get started <ArrowRight className="w-3.5 h-3.5" />
                     </Link>
                 </div>
 
@@ -67,10 +68,10 @@ export const NavBar = ({ isDark, menuOpen, scrolled, setMenuOpen, toggleTheme, t
                     {!themeLocked && <ThemeToggle isDark={isDark} onClick={toggleTheme} />}
                     <button
                         onClick={() => setMenuOpen((v) => !v)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg border border-line dark:border-white/15 text-ink dark:text-white"
+                        className="w-9 h-9 flex items-center justify-center rounded-full border border-line dark:border-white/15 text-ink dark:text-white hover:bg-surface dark:hover:bg-white/10 transition-colors"
                         aria-label={menuOpen ? 'Close menu' : 'Open menu'}
                     >
-                        {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                        {menuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
                     </button>
                 </div>
             </nav>
