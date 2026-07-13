@@ -44,6 +44,8 @@ export interface QuoteOptionView {
   price: number;
   departureTime: string;
   details?: string;
+  /** True on the option the client approved. */
+  isSelected?: boolean;
   createdAt: string;
 }
 

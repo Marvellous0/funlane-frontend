@@ -99,17 +99,18 @@ export function summaryToVM(s: RequestSummaryView): RequestVM {
 
 /**
  * Resolves the approved option once the request is past client review.
- * Tolerates the id field arriving under different names (backend versions),
- * and falls back to the sole remaining option when only one exists.
+ * Primary source is the backend's `isSelected` flag on the option; legacy
+ * id-field and single-option fallbacks remain for older payloads.
  */
 function resolveApprovedOption(r: TravelRequestView): QuoteOptionView | null {
   const postApproval = r.status === 'APPROVED_LOCKED' || r.status === 'ISSUED' || r.status === 'COMPLETED';
   if (!postApproval) return null;
 
+  const selected = r.quoteOptions.find((o) => o.isSelected);
+  if (selected) return selected;
+
   const raw = r as TravelRequestView & Record<string, unknown>;
-  const approvedId = (raw.approvedOptionId ?? raw.selectedOptionId ?? raw.approvedQuoteOptionId ?? null) as
-    | string
-    | null;
+  const approvedId = (raw.approvedOptionId ?? raw.selectedOptionId ?? null) as string | null;
 
   return (
     r.quoteOptions.find((o) => o.id === approvedId) ??

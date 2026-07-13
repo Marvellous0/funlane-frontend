@@ -406,10 +406,17 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
               <h2 className="text-lg font-semibold text-ink mb-4">Quote options</h2>
               <div className="grid gap-3">
                 {r.quoteOptions.map((o) => (
-                  <div key={o.id} className="rounded-xl border border-line p-4">
+                  <div key={o.id} className={`rounded-xl border p-4 ${o.isSelected ? 'border-green/40 bg-green-soft/30' : 'border-line'}`}>
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
-                        <div className="font-semibold text-ink">{o.airline}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-semibold text-ink">{o.airline}</span>
+                          {o.isSelected && (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-green-dark bg-green-soft px-2 py-0.5 rounded-full">
+                              <CheckCircle2 aria-hidden="true" className="w-3 h-3" /> Selected by client
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-ink-3 mt-0.5">{o.label}</div>
                       </div>
                       <div>

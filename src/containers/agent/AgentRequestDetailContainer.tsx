@@ -211,6 +211,17 @@ export function AgentRequestDetailContainer({ id }: { id: string }) {
               <h2 className="text-lg font-semibold text-ink mb-1">Issue the ticket</h2>
               <p className="text-sm text-ink-3 mb-5">The client approved an option and funds are secured. Attach the e-ticket to issue it.</p>
 
+              {r.approvedOption && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 mb-5 bg-green-soft/40 border border-green/30 rounded-xl">
+                  <div className="min-w-0">
+                    <div className="text-[11px] uppercase font-semibold text-green-dark tracking-wide mb-0.5">Client&apos;s approved option</div>
+                    <div className="text-sm font-medium text-ink truncate">{r.approvedOption.airline} <span className="text-[11px] text-ink-3 ml-1">{r.approvedOption.label}</span></div>
+                    <div className="text-xs text-ink-3 mt-0.5">Departs {fmtDepartTime(r.approvedOption.departureTime)}</div>
+                  </div>
+                  <div className="text-base font-bold text-green-dark shrink-0">{fmtNaira(r.approvedOption.price)}</div>
+                </div>
+              )}
+
               <div className="flex items-start gap-3 p-4 bg-surface rounded-lg border border-line mb-4">
                 <ShieldCheck aria-hidden="true" className="w-5 h-5 mt-0.5 text-ink-2 shrink-0" />
                 <label className="text-xs text-ink-2 leading-relaxed flex items-start gap-2">
