@@ -25,7 +25,7 @@ export function frameClass(tone: FieldTone) {
 }
 
 export const controlClass =
-  'peer w-full bg-transparent py-3 text-sm text-ink focus:outline-none disabled:cursor-not-allowed disabled:opacity-60';
+  'peer w-full bg-transparent py-3 text-sm text-ink focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-60';
 
 export const leadingIconClass =
   'pointer-events-none absolute left-3.5 w-[18px] h-[18px] text-ink-3/70 transition-colors duration-200 peer-focus:text-brand';
