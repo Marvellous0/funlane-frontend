@@ -32,6 +32,7 @@ export function TextField({ name, label, type = 'text', placeholder, icon: Icon,
     <FieldShell error={showError ? meta.error : undefined} hint={hint}>
       <div className={frameClass(tone)}>
         <input
+          {...field}
           id={inputId}
           type={isPassword && revealed ? 'text' : type}
           placeholder={placeholder ?? ' '}
@@ -40,7 +41,6 @@ export function TextField({ name, label, type = 'text', placeholder, icon: Icon,
           inputMode={inputMode}
           aria-invalid={showError || undefined}
           className={`${controlClass} placeholder:text-transparent focus:placeholder:text-ink-3/50 ${Icon ? 'pl-11' : 'pl-4'} ${isPassword || showValid ? 'pr-11' : 'pr-4'}`}
-          {...field}
         />
         {Icon && <Icon aria-hidden="true" className={leadingIconClass} />}
         <FloatingLabel htmlFor={inputId} hasIcon={!!Icon} error={showError}>
@@ -49,11 +49,11 @@ export function TextField({ name, label, type = 'text', placeholder, icon: Icon,
         {isPassword ? (
           <button
             type="button"
-            onClick={() => setRevealed((v) => !v)}
+            onClick={() => setRevealed(!revealed)}
             aria-label={revealed ? 'Hide password' : 'Show password'}
-            className="absolute right-3.5 text-ink-3/70 hover:text-ink transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-ink-3/70 hover:text-ink transition-colors z-20 flex items-center justify-center cursor-pointer"
           >
-            {revealed ? <EyeOff aria-hidden="true" className="w-[18px] h-[18px]" /> : <Eye aria-hidden="true" className="w-[18px] h-[18px]" />}
+            {revealed ? <EyeOff aria-hidden="true" className="w-5 h-5" /> : <Eye aria-hidden="true" className="w-5 h-5" />}
           </button>
         ) : (
           showValid && <CheckCircle2 aria-hidden="true" className="absolute right-3.5 w-[18px] h-[18px] text-green animate-scale-in" />

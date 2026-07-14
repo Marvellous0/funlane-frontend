@@ -9,7 +9,7 @@ import { useAuth, type StaffPortal } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useHydration } from '@/hooks/useHydration';
 import { homePathFor } from '@/services/auth.service';
-import { StaffAuthLayout } from '@/components/layout/StaffAuthLayout';
+import { AuthLayout } from '@/components/layout/AuthLayout';
 import { IconShield } from '@/components/ui/icons';
 import { TextField, CheckboxField } from '@/components/form';
 import { staffLoginSchema } from '@/lib/validation/schemas';
@@ -75,14 +75,19 @@ export function StaffLoginContainer({ portal }: { portal: StaffPortal }) {
   }
 
   return (
-    <StaffAuthLayout
-      badge={meta.badge}
-      badgeIcon={meta.badgeIcon}
-      title={meta.title}
-      subtitle={meta.subtitle}
-      altHref={meta.alt.href}
-      altLabel={meta.alt.label}
+    <AuthLayout
+      title="Streamlining Global Journeys."
+      description="The gold standard in corporate travel and logistics. Your precision-engineered portal ensures every movement is managed with absolute transparency."
     >
+      <div className="flex flex-col items-center text-center mb-6">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-ink-2 mb-4">
+          <meta.badgeIcon className="w-3.5 h-3.5" aria-hidden="true" />
+          {meta.badge}
+        </span>
+        <h1 className="text-2xl font-bold text-ink">{meta.title}</h1>
+        <p className="text-ink-3 text-sm mt-1.5 leading-relaxed">{meta.subtitle}</p>
+      </div>
+
       <Formik initialValues={initialValues} validationSchema={staffLoginSchema} onSubmit={onSubmit}>
         <Form noValidate className="space-y-4">
           <TextField
@@ -108,15 +113,6 @@ export function StaffLoginContainer({ portal }: { portal: StaffPortal }) {
             <CheckboxField name="remember" className="mt-3">Remember Me</CheckboxField>
           </div>
 
-          <div className="auth-banner">
-            <IconShield className="w-5 h-5 text-blue shrink-0 mt-0.5" />
-            <p className="text-xs leading-relaxed">
-              <span className="font-semibold text-ink">Restricted access.</span> This portal is for
-              authorized {portal === 'admin' ? 'administrators' : 'agents'} only. Activity is logged
-              under NDPA-compliant controls.
-            </p>
-          </div>
-
           <button type="submit" disabled={loading} className="auth-btn">
             {loading ? 'Signing in…' : meta.cta}
           </button>
@@ -138,6 +134,20 @@ export function StaffLoginContainer({ portal }: { portal: StaffPortal }) {
           </a>
         </p>
       )}
-    </StaffAuthLayout>
+
+      <div className="relative flex items-center justify-center my-5">
+        <div className="w-full h-px bg-line" />
+      </div>
+
+      <div className="mt-4 flex items-center justify-center gap-3 text-xs text-ink-3">
+        <a href={meta.alt.href} className="font-medium hover:text-ink hover:underline transition-colors">
+          {meta.alt.label}
+        </a>
+        <span aria-hidden="true">·</span>
+        <a href="/login" className="font-medium hover:text-ink hover:underline transition-colors">
+          Client sign in
+        </a>
+      </div>
+    </AuthLayout>
   );
 }

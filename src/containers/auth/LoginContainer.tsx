@@ -80,13 +80,6 @@ export function LoginContainer() {
             <CheckboxField name="remember" className="mt-3">Remember Me</CheckboxField>
           </div>
 
-          <div className="auth-banner">
-            <IconShield className="w-5 h-5 text-blue shrink-0 mt-0.5" />
-            <p className="text-xs leading-relaxed">
-              <span className="font-semibold text-ink">Security protocol:</span> Your session is protected by
-              NDPA-compliant encryption and times out after 10 minutes of inactivity.
-            </p>
-          </div>
 
           {error && (
             <div className="bg-red-soft text-red-dark rounded-lg px-4 py-3 text-sm font-medium animate-slide-up flex items-center gap-2">
@@ -119,10 +112,6 @@ export function LoginContainer() {
         Staff member? Sign in to the{' '}
         <Link href="/agent/login" className="font-medium text-ink hover:underline">
           Agent
-        </Link>{' '}
-        or{' '}
-        <Link href="/admin/login" className="font-medium text-ink hover:underline">
-          Admin
         </Link>{' '}
         portal.
       </p>
