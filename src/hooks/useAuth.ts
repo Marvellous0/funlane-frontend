@@ -46,6 +46,18 @@ export function useAuth() {
         password: creds.password,
       });
       const authUser = toAuthUser(publicUser);
+
+      // This screen is the CLIENT portal. Staff accounts must use their own
+      // portals (which have dedicated endpoints and role checks) — don't
+      // create a session here, just point them to the right door.
+      if (authUser.role !== 'client') {
+        toast.error(
+          `This is the client sign-in. Please use the ${authUser.role} portal to sign in.`,
+        );
+        router.push(loginPathFor(authUser.role));
+        return false;
+      }
+
       login(authUser, token);
       router.replace(consumeNext() ?? homePathFor(authUser.role));
       return true;
@@ -80,6 +92,16 @@ export function useAuth() {
       setToken(token);
       const publicUser = await authApi.getCurrentUser();
       const authUser = toAuthUser(publicUser);
+
+      // Same role gate as the password path — Google sign-in is client-only.
+      if (authUser.role !== 'client') {
+        toast.error(
+          `This is the client sign-in. Please use the ${authUser.role} portal to sign in.`,
+        );
+        router.push(loginPathFor(authUser.role));
+        return { ok: false };
+      }
+
       login(authUser, token);
 
       try {
@@ -125,6 +147,18 @@ export function useAuth() {
         token = res.token;
       }
       const authUser = toAuthUser(publicUser);
+
+      // Defense in depth: the endpoints are documented to 403 the wrong role,
+      // but never trust that alone — verify the returned role matches the
+      // portal before storing a session.
+      if (authUser.role !== portal) {
+        toast.error(
+          `This is the ${portal} sign-in. Please use the ${authUser.role} portal to sign in.`,
+        );
+        router.push(loginPathFor(authUser.role));
+        return false;
+      }
+
       login(authUser, token);
       router.replace(consumeNext() ?? homePathFor(authUser.role));
       return true;
