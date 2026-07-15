@@ -36,6 +36,20 @@ export function useAuth() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * The /login screen is the CLIENT portal only. Staff accounts must use
+   * their own portals (dedicated endpoints + role checks). Returns `true`
+   * when the account may proceed; otherwise toasts and redirects the user
+   * to their correct login screen. Callers translate `false` into their own
+   * failure shape (`false` or `{ ok: false }`).
+   */
+  function gateClientPortal(role: Role): boolean {
+    if (role === 'client') return true;
+    toast.error(`This is the client sign-in. Please use the ${role} portal to sign in.`);
+    router.push(loginPathFor(role));
+    return false;
+  }
+
   async function signIn(creds: Credentials): Promise<boolean> {
     setLoading(true);
     setError(null);
@@ -46,16 +60,7 @@ export function useAuth() {
       });
       const authUser = toAuthUser(publicUser);
 
-      // This screen is the CLIENT portal. Staff accounts must use their own
-      // portals (which have dedicated endpoints and role checks) — don't
-      // create a session here, just point them to the right door.
-      if (authUser.role !== 'client') {
-        toast.error(
-          `This is the client sign-in. Please use the ${authUser.role} portal to sign in.`,
-        );
-        router.push(loginPathFor(authUser.role));
-        return false;
-      }
+      if (!gateClientPortal(authUser.role)) return false;
 
       login(authUser, token);
       router.replace(consumeNext() ?? homePathFor(authUser.role));
@@ -90,13 +95,7 @@ export function useAuth() {
       const authUser = toAuthUser(publicUser);
 
       // Same role gate as the password path — Google sign-in is client-only.
-      if (authUser.role !== 'client') {
-        toast.error(
-          `This is the client sign-in. Please use the ${authUser.role} portal to sign in.`,
-        );
-        router.push(loginPathFor(authUser.role));
-        return { ok: false };
-      }
+      if (!gateClientPortal(authUser.role)) return { ok: false };
 
       login(authUser, token);
 
