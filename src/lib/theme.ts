@@ -58,12 +58,39 @@ export function setMode(mode: ThemeMode): void {
   applyMode(getOrgMode() ?? mode);
 }
 
+/** Fired on this tab whenever the org override changes (storage events only
+ *  fire on *other* tabs, so we dispatch our own for the current one). */
+export const ORG_THEME_EVENT = 'funlane-org-theme-changed';
+
 /** Admin: force a portal-wide theme, or pass null to restore user choice. */
 export function setOrgMode(mode: ThemeMode | null): void {
   if (typeof window === 'undefined') return;
   if (mode === null) window.localStorage.removeItem(ORG_THEME_KEY);
   else window.localStorage.setItem(ORG_THEME_KEY, mode);
   applyMode(effectiveMode());
+  window.dispatchEvent(new Event(ORG_THEME_EVENT));
+}
+
+/**
+ * Subscribes to org-theme changes from this tab (custom event) and other
+ * tabs (storage event), re-applying the effective mode and notifying the
+ * caller. Returns an unsubscribe function.
+ */
+export function onOrgThemeChange(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+  const handle = () => {
+    applyMode(effectiveMode());
+    listener();
+  };
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === ORG_THEME_KEY || e.key === THEME_KEY) handle();
+  };
+  window.addEventListener(ORG_THEME_EVENT, handle);
+  window.addEventListener('storage', onStorage);
+  return () => {
+    window.removeEventListener(ORG_THEME_EVENT, handle);
+    window.removeEventListener('storage', onStorage);
+  };
 }
 
 /** Inline <script> body that applies the effective mode before paint (no FOUC). */

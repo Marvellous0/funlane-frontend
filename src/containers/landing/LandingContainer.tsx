@@ -12,7 +12,7 @@ import { StatsSection } from '@/components/landing/StatsSection';
 import { SecuritySection } from '@/components/landing/SecuritySection';
 import { PortalSection } from '@/components/landing/PortalSection';
 import { TrustMarque } from '@/components/landing/TrustMarque';
-import { activeMode, getOrgMode, setMode, type ThemeMode } from '@/lib/theme';
+import { activeMode, getOrgMode, onOrgThemeChange, setMode, type ThemeMode } from '@/lib/theme';
 
 export function LandingContainer() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -24,8 +24,13 @@ export function LandingContainer() {
   // mode to <html>; sync local state with it so the toggle icon and
   // theme-aware sections match from the very first interaction.
   useEffect(() => {
-    setTheme(activeMode());
-    setThemeLocked(getOrgMode() !== null);
+    const sync = () => {
+      setTheme(activeMode());
+      setThemeLocked(getOrgMode() !== null);
+    };
+    sync();
+    // React live when an admin changes the org theme (this tab or another).
+    return onOrgThemeChange(sync);
   }, []);
 
   useEffect(() => {

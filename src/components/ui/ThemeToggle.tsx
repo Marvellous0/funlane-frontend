@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import { activeMode, getOrgMode, getStoredMode, setMode, systemMode, type ThemeMode } from '@/lib/theme';
+import { activeMode, getOrgMode, getStoredMode, onOrgThemeChange, setMode, systemMode, type ThemeMode } from '@/lib/theme';
 
 /**
  * Light/dark switch. Reads the applied mode on mount (the no-flash script has
@@ -15,9 +15,14 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
   const [locked, setLocked] = useState(false);
 
   useEffect(() => {
-    setLocked(getOrgMode() !== null);
-    setModeState(getStoredMode() ?? activeMode() ?? systemMode());
+    const sync = () => {
+      setLocked(getOrgMode() !== null);
+      setModeState(getOrgMode() ?? getStoredMode() ?? activeMode() ?? systemMode());
+    };
+    sync();
     setReady(true);
+    // React live when an admin changes the org theme (this tab or another).
+    return onOrgThemeChange(sync);
   }, []);
 
   function toggle() {

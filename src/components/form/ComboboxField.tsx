@@ -25,6 +25,7 @@ interface ComboboxFieldProps {
   placeholder?: string;
   hint?: React.ReactNode;
   disabled?: boolean;
+  /** @deprecated No longer used — all matches render (capped at MAX_RENDERED for perf). */
   limit?: number;
   strict?: boolean;
   id?: string;
@@ -34,6 +35,13 @@ function haystack(o: ComboOption) {
   return `${o.label} ${o.value} ${o.description ?? ''} ${o.badge ?? ''} ${o.keywords ?? ''}`.toLowerCase();
 }
 
+/**
+ * All matches are shown in the scrollable list; this cap only bounds how many
+ * DOM rows render at once so huge datasets (e.g. every world city) can't jank
+ * the page. When it kicks in, a footer row invites the user to keep typing.
+ */
+const MAX_RENDERED = 100;
+
 export function ComboboxField({
   name,
   label,
@@ -42,7 +50,6 @@ export function ComboboxField({
   placeholder,
   hint,
   disabled,
-  limit = 8,
   strict = false,
   id,
 }: ComboboxFieldProps) {
@@ -82,12 +89,13 @@ export function ComboboxField({
     };
   }, [open, updatePosition]);
 
-  const matches = useMemo(() => {
+  const { matches, totalMatches } = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return options.slice(0, limit);
-    const terms = q.split(/\s+/);
-    return options.filter((o) => { const h = haystack(o); return terms.every((t) => h.includes(t)); }).slice(0, limit);
-  }, [query, options, limit]);
+    const filtered = !q
+      ? options
+      : options.filter((o) => { const h = haystack(o); return q.split(/\s+/).every((t) => h.includes(t)); });
+    return { matches: filtered.slice(0, MAX_RENDERED), totalMatches: filtered.length };
+  }, [query, options]);
 
   useEffect(() => {
     if (!open) return;
@@ -195,6 +203,11 @@ export function ComboboxField({
                   </li>
                 );
               })
+            )}
+            {totalMatches > matches.length && (
+              <li aria-hidden="true" className="px-3.5 py-2.5 text-[11px] text-ink-3 border-t border-line">
+                Showing {matches.length} of {totalMatches.toLocaleString()} — keep typing to narrow the list.
+              </li>
             )}
           </ul>,
           document.body,

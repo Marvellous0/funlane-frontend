@@ -51,14 +51,31 @@ export const BUDGET_TIERS: BudgetTier[] = [
 ];
 
 export const AIRLINES = [
+  // Nigerian carriers
   'Air Peace',
   'Ibom Air',
   'Arik Air',
   'United Nigeria',
   'Green Africa',
   'Dana Air',
+  // International carriers serving Nigerian routes
+  'Qatar Airways',
+  'Emirates',
+  'British Airways',
+  'Turkish Airlines',
+  'Ethiopian Airlines',
+  'KLM',
+  'Air France',
+  'Lufthansa',
+  'Virgin Atlantic',
+  'Delta Air Lines',
+  'Egyptair',
+  'Kenya Airways',
   'No preference',
 ];
+
+/** Sentinel for the "type your own airline" choice on the request form. */
+export const OTHER_AIRLINE = 'OTHER';
 
 export interface BoardColumn {
   status: RequestStatus;

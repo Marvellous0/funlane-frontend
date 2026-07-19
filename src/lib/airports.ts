@@ -61,11 +61,25 @@ export const AIRPORTS: Airport[] = [
   { code: 'GZ', city: 'Guangzhou', name: 'Baiyun International', country: 'China' },
 ];
 
+/**
+ * Codes surfaced first when the picker is opened with an empty query — a mix
+ * of Nigerian origins and the international hubs Nigerian travellers book
+ * most, so the default view reads as international rather than Nigeria-only.
+ */
+const FEATURED_CODES = ['LOS', 'LHR', 'ABV', 'DXB', 'DOH', 'AMS', 'IST', 'JFK', 'PHC', 'CDG'];
+
+const featuredRank = (code: string) => {
+  const i = FEATURED_CODES.indexOf(code);
+  return i === -1 ? FEATURED_CODES.length : i;
+};
+
 /** Prebuilt combobox options: value stays "City (CODE)" to match existing data. */
-export const AIRPORT_OPTIONS: ComboOption[] = AIRPORTS.map((a) => ({
-  value: `${a.city} (${a.code})`,
-  label: a.city,
-  description: `${a.name} · ${a.country}`,
-  badge: a.code,
-  keywords: `${a.country} ${a.name}`,
-}));
+export const AIRPORT_OPTIONS: ComboOption[] = [...AIRPORTS]
+  .sort((a, b) => featuredRank(a.code) - featuredRank(b.code))
+  .map((a) => ({
+    value: `${a.city} (${a.code})`,
+    label: a.city,
+    description: `${a.name} · ${a.country}`,
+    badge: a.code,
+    keywords: `${a.country} ${a.name}`,
+  }));
