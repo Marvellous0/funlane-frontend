@@ -1,20 +1,55 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Briefcase, ShieldPlus, ArrowRight, ShieldCheck, ClipboardList, Clock, Plane, CheckCircle2 } from 'lucide-react';
+import { Briefcase, ShieldPlus, ArrowRight, ShieldCheck, ClipboardList, Clock, Plane, CheckCircle2, XCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useRequestList } from '@/hooks/useRequestsLive';
+import { requestsApi } from '@/api';
 import { PageHeader, StatCard } from '@/components/ui';
 import { dailyCounts, weekOverWeek } from '@/utils/trend';
+import type { ApiRequestStatus } from '@/interface';
+
+interface StatusTotals {
+  total: number;
+  pending: number;
+  inProgress: number;
+  completed: number;
+  cancelled: number;
+}
+
+/**
+ * Accurate platform-wide counts: each figure comes from the backend's
+ * `pagination.total` for that status filter (limit=1 requests, so the calls
+ * are cheap) rather than counting one page of results — which previously made
+ * the cards disagree with each other.
+ */
+async function fetchStatusTotals(): Promise<StatusTotals> {
+  const count = async (status?: ApiRequestStatus) =>
+    (await requestsApi.listAll({ status, page: 1, limit: 1 })).pagination.total;
+
+  const [total, pending, optionsSent, approved, issued, completed, cancelled] = await Promise.all([
+    count(), count('PENDING'), count('OPTIONS_SENT'), count('APPROVED_LOCKED'),
+    count('ISSUED'), count('COMPLETED'), count('CANCELLED'),
+  ]);
+
+  return { total, pending, inProgress: optionsSent + approved + issued, completed, cancelled };
+}
 
 export function AdminOverviewContainer() {
   const user = useAuthStore((s) => s.user);
   const firstName = user?.name?.split(' ')[0] ?? 'Admin';
-  const { items, loading } = useRequestList('all');
+  // Recent requests still power the 7-day sparkline/trend.
+  const { items } = useRequestList('all');
 
-  const pending = items.filter((r) => r.status === 'PENDING').length;
-  const inProgress = items.filter((r) => ['OPTIONS_SENT', 'APPROVED_LOCKED', 'ISSUED'].includes(r.status)).length;
-  const completed = items.filter((r) => r.status === 'COMPLETED').length;
+  const [totals, setTotals] = useState<StatusTotals | null>(null);
+  const loading = totals === null;
+
+  useEffect(() => {
+    fetchStatusTotals()
+      .then(setTotals)
+      .catch(() => setTotals({ total: 0, pending: 0, inProgress: 0, completed: 0, cancelled: 0 }));
+  }, []);
 
   const volumeSpark = dailyCounts(items, 7);
   const volumeTrend = weekOverWeek(items);
@@ -29,19 +64,20 @@ export function AdminOverviewContainer() {
         subtitle="Manage your team — onboard agents and grant administrator access."
       />
 
-      <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           label="Total requests"
-          value={items.length}
+          value={totals?.total ?? 0}
           icon={ClipboardList}
           iconTone="brand"
           loading={loading}
           sparkline={hasSpark ? volumeSpark : undefined}
           trend={volumeTrend !== null ? { value: volumeTrend, label: 'vs last week' } : undefined}
         />
-        <StatCard label="Pending" value={pending} icon={Clock} iconTone="amber" highlight={pending > 0} loading={loading} />
-        <StatCard label="In progress" value={inProgress} icon={Plane} iconTone="blue" loading={loading} />
-        <StatCard label="Completed" value={completed} icon={CheckCircle2} iconTone="green" loading={loading} />
+        <StatCard label="Pending" value={totals?.pending ?? 0} icon={Clock} iconTone="amber" highlight={(totals?.pending ?? 0) > 0} loading={loading} />
+        <StatCard label="In progress" value={totals?.inProgress ?? 0} icon={Plane} iconTone="blue" loading={loading} />
+        <StatCard label="Completed" value={totals?.completed ?? 0} icon={CheckCircle2} iconTone="green" loading={loading} />
+        <StatCard label="Cancelled" value={totals?.cancelled ?? 0} icon={XCircle} iconTone="ink" loading={loading} />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

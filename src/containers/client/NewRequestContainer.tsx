@@ -6,7 +6,7 @@ import { Formik, Form, FieldArray } from 'formik';
 import * as yup from 'yup';
 import { requestsApi, usersApi, ApiError } from '@/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { AIRLINES } from '@/lib/constants';
+import { AIRLINES, OTHER_AIRLINE } from '@/lib/constants';
 import { BUDGET_TIERS } from '@/services/requestView';
 import { newRequestSchema } from '@/lib/validation/schemas';
 import { useCityOptions, useNationalityOptions } from '@/hooks/useCountryData';
@@ -45,6 +45,8 @@ interface RequestFormValues {
   departureDate: string;
   returnDate: string;
   preferredAirline: string;
+  /** Free-text airline, used when preferredAirline is the "Other" sentinel. */
+  preferredAirlineOther: string;
   preferredTime: string;
   budgetTier: ApiBudgetTier;
   passengers: PassengerValues[];
@@ -66,7 +68,8 @@ const initialValues: RequestFormValues = {
   destination: '',
   departureDate: '',
   returnDate: '',
-  preferredAirline: AIRLINES[0],
+  preferredAirline: 'No preference',
+  preferredAirlineOther: '',
   preferredTime: 'Any time',
   budgetTier: 'ECONOMY',
   passengers: [emptyPassenger()],
@@ -106,6 +109,14 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
   const step = (n: number) => (isAdmin ? n + 1 : n);
 
   async function handleSubmit(values: RequestFormValues) {
+    // "Other" resolves to the free-text airline the client typed.
+    const airline =
+      values.preferredAirline === OTHER_AIRLINE
+        ? values.preferredAirlineOther.trim() || undefined
+        : values.preferredAirline === 'No preference'
+          ? undefined
+          : values.preferredAirline;
+
     try {
       const { request } = await requestsApi.createRequest({
         clientId: isAdmin ? values.clientId : undefined,
@@ -114,7 +125,7 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
         departureDate: values.departureDate,
         returnDate: values.tripType === 'round' ? values.returnDate : undefined,
         budgetTier: values.budgetTier,
-        preferredAirline: values.preferredAirline === 'No preference' ? undefined : values.preferredAirline,
+        preferredAirline: airline,
         preferredTime: values.preferredTime === 'Any time' ? undefined : values.preferredTime,
         passengers: values.passengers.map(({ file, ...p }) => p),
         passportDocs: values.passengers.map((p) => p.file as File),
@@ -186,6 +197,7 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
                   {AIRLINES.map((a) => (
                     <option key={a}>{a}</option>
                   ))}
+                  <option value={OTHER_AIRLINE}>Other (type it in)</option>
                 </SelectField>
                 <SelectField name="preferredTime" label="Preferred time" icon={Clock}>
                   <option value="Any time">No preference</option>
@@ -201,6 +213,17 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
                   ))}
                 </SelectField>
               </div>
+
+              {values.preferredAirline === OTHER_AIRLINE && (
+                <div className="animate-fade-in">
+                  <TextField
+                    name="preferredAirlineOther"
+                    label="Airline name"
+                    placeholder="e.g. Rwandair"
+                    icon={Plane}
+                  />
+                </div>
+              )}
             </Section>
 
             <FieldArray name="passengers">
@@ -240,8 +263,6 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
                             placeholder="Search nationality"
                             icon={Globe}
                             options={nationalityOptions}
-                            // Show the full list (it's scrollable); typing still filters.
-                            limit={nationalityOptions.length}
                             strict
                           />
                           <DateField name={`passengers.${i}.dateOfBirth`} label="Date of birth" />

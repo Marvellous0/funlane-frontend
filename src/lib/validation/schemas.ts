@@ -135,6 +135,13 @@ export const newRequestSchema = yup.object({
     otherwise: (s) => s.notRequired(),
   }),
   budgetTier: yup.string().required('Select a cabin class.'),
+  preferredAirline: yup.string().notRequired(),
+  /** Required only when the client picks "Other" for preferred airline. */
+  preferredAirlineOther: yup.string().trim().when('preferredAirline', {
+    is: 'OTHER',
+    then: (s) => s.required('Enter the airline name.'),
+    otherwise: (s) => s.notRequired(),
+  }),
   passengers: yup.array().of(passengerSchema).min(1, 'Add at least one passenger.').required(),
 });
 

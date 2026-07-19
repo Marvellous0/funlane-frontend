@@ -84,7 +84,7 @@ export function useAuth() {
   /**
    * Finishes the redirect-based Google OAuth flow. The backend owns the whole
    * dance and hands back a JWT via `/auth/google/callback?token=`; this stores
-   * it exactly like a password login (same store, same bearer header), then
+   * it exactly like a pasOsword login (same store, same bearer header), then
    * best-effort checks whether the profile has a phone on file — Google never
    * provides one — flagging it so a completion prompt can show.
    */

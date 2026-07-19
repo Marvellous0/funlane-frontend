@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Formik, Form, useFormikContext, type FormikHelpers } from 'formik';
@@ -11,7 +12,13 @@ import { toast } from 'react-toastify';
 import { AuthLayout } from '@/components/layout/AuthLayout';
 import { GoogleAuthLink } from '@/components/auth/GoogleAuthLink';
 import { TextField, CheckboxField } from '@/components/form';
+import { Modal } from '@/components/ui';
+import { TermsContent } from '@/components/legal/TermsContent';
+import { PrivacyContent } from '@/components/legal/PrivacyContent';
 import { signupSchema } from '@/lib/validation/schemas';
+
+/** Which legal document modal is open, if any. */
+type LegalDoc = 'terms' | 'privacy' | null;
 
 type SignUpValues = {
   firstName: string;
@@ -47,6 +54,7 @@ function passwordChecks(password: string) {
 export function SignUpContainer() {
   const router = useRouter();
   const { register } = useAuth();
+  const [legalDoc, setLegalDoc] = useState<LegalDoc>(null);
 
   async function onSubmit(values: SignUpValues, helpers: FormikHelpers<SignUpValues>) {
     if (passwordChecks(values.password).score < 2) {
@@ -84,8 +92,10 @@ export function SignUpContainer() {
       <p className="text-ink-3 text-sm mb-6">Join Funlane Travels &amp; Logistics.</p>
 
       <Formik initialValues={initialValues} validationSchema={signupSchema} onSubmit={onSubmit}>
-        <SignUpFormFields />
+        <SignUpFormFields onShowLegal={setLegalDoc} />
       </Formik>
+
+      <LegalModal doc={legalDoc} onClose={() => setLegalDoc(null)} />
 
       <div className="relative flex items-center justify-center my-5">
         <div className="w-full h-px bg-line" />
@@ -104,8 +114,30 @@ export function SignUpContainer() {
   );
 }
 
+/** Read-in-place modal so signing up never navigates away from the form. */
+function LegalModal({ doc, onClose }: { doc: LegalDoc; onClose: () => void }) {
+  return (
+    <Modal
+      open={doc !== null}
+      title={doc === 'privacy' ? 'Privacy Policy' : 'Terms of Service'}
+      onClose={onClose}
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full py-2.5 bg-brand text-white font-semibold text-sm rounded-lg hover:bg-brand-dark transition-colors"
+        >
+          Close
+        </button>
+      }
+    >
+      {doc === 'privacy' ? <PrivacyContent /> : <TermsContent />}
+    </Modal>
+  );
+}
+
 /** Rendered inside <Formik> so it can read live values for the strength chips. */
-function SignUpFormFields() {
+function SignUpFormFields({ onShowLegal }: { onShowLegal: (doc: LegalDoc) => void }) {
   const { values, isSubmitting } = useFormikContext<SignUpValues>();
   const { met } = passwordChecks(values.password);
 
@@ -151,9 +183,23 @@ function SignUpFormFields() {
 
       <CheckboxField name="ndpaConsent" className="bg-surface rounded-lg p-3.5 border border-line">
         <span className="text-xs text-ink-2 leading-relaxed">
-          I agree to the <span className="text-ink font-semibold underline">Terms of Service</span> and{' '}
-          <span className="text-ink font-semibold underline">Privacy Policy</span>, and consent to
-          NDPA-compliant data processing.
+          I agree to the{' '}
+          <button
+            type="button"
+            onClick={() => onShowLegal('terms')}
+            className="text-brand font-semibold underline hover:text-brand-dark"
+          >
+            Terms of Service
+          </button>{' '}
+          and{' '}
+          <button
+            type="button"
+            onClick={() => onShowLegal('privacy')}
+            className="text-brand font-semibold underline hover:text-brand-dark"
+          >
+            Privacy Policy
+          </button>
+          , and consent to NDPA-compliant data processing.
         </span>
       </CheckboxField>
 
