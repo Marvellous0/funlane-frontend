@@ -6,8 +6,9 @@ import { Formik, Form, type FormikHelpers } from 'formik';
 import { useRequestDetail } from '@/hooks/useRequestsLive';
 import { useAgentDirectory } from '@/hooks/useAgentDirectory';
 import { StatusBadge, ProgressSteps, Timeline, EmptyState, Loader, Modal, Button, ConfirmDialog } from '@/components/ui';
-import { TextField, SelectField, DateTimeField } from '@/components/form';
-import { AIRLINES } from '@/lib/constants';
+import { TextField, DateTimeField, ComboboxField } from '@/components/form';
+import { OTHER_AIRLINE } from '@/lib/constants';
+import { AIRLINE_SELECT_OPTIONS } from '@/lib/airlineOptions';
 import { quoteOptionSchema } from '@/lib/validation/schemas';
 import { STATUS_META } from '@/services/requestView';
 import { fmtNaira, fmtDate, fmtDateTime, fmtDepartTime } from '@/utils/format';
@@ -36,13 +37,22 @@ function synthTimeline(r: RequestVM): HistoryEntry[] {
 /** Price stays a string in the form; yup casts it on validate, we cast on submit. */
 interface QuoteDraftValues {
   airline: string;
+  /** Free-text airline, used when `airline` is the "Other" sentinel. */
+  airlineOther: string;
   label: string;
   departureTime: string;
   price: string;
   details: string;
 }
 
-const blankDraft = (): QuoteDraftValues => ({ airline: AIRLINES[0], label: '', departureTime: '', price: '', details: '' });
+const blankDraft = (): QuoteDraftValues => ({
+  airline: AIRLINE_SELECT_OPTIONS[0]?.value ?? '',
+  airlineOther: '',
+  label: '',
+  departureTime: '',
+  price: '',
+  details: '',
+});
 
 /** Which reason-collecting action is open, if any. */
 type ReasonAction = 'reject' | 'cancel' | 'admin-cancel';
@@ -115,8 +125,10 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
   const canForceCancel = r.status === 'PENDING' || r.status === 'OPTIONS_SENT' || r.status === 'APPROVED_LOCKED';
 
   async function commitOption(values: QuoteDraftValues, helpers: FormikHelpers<QuoteDraftValues>) {
+    // "Other" resolves to the free-text airline typed in.
+    const airline = values.airline === OTHER_AIRLINE ? values.airlineOther.trim() : values.airline;
     const ok = await addOption({
-      airline: values.airline,
+      airline,
       label: values.label,
       details: values.details,
       price: Number(values.price),
@@ -464,7 +476,7 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
 
       {/* Add quote option (agent power) */}
       <Formik initialValues={blankDraft()} validationSchema={quoteOptionSchema} onSubmit={commitOption}>
-        {({ submitForm, isSubmitting }) => (
+        {({ submitForm, isSubmitting, values }) => (
           <Modal open={addOpen} title="Add travel option" onClose={() => setAddOpen(false)}
             footer={
               <div className="flex gap-3 w-full">
@@ -474,11 +486,22 @@ export function AdminRequestDetailContainer({ id }: { id: string }) {
             }>
             <Form noValidate className="space-y-4">
               <div className="grid sm:grid-cols-2 gap-3">
-                <SelectField name="airline" label="Airline" icon={Plane} id="admin-opt-airline">
-                  {AIRLINES.filter((a) => a !== 'No preference').map((a) => <option key={a}>{a}</option>)}
-                </SelectField>
+                <ComboboxField
+                  name="airline"
+                  label="Airline"
+                  placeholder="Search airline"
+                  icon={Plane}
+                  options={AIRLINE_SELECT_OPTIONS}
+                  strict
+                  id="admin-opt-airline"
+                />
                 <TextField name="label" label="Label" placeholder="e.g. Direct · 23kg" icon={Tag} id="admin-opt-label" />
               </div>
+              {values.airline === OTHER_AIRLINE && (
+                <div className="animate-fade-in">
+                  <TextField name="airlineOther" label="Airline name" placeholder="e.g. Rwandair" icon={Plane} id="admin-opt-airline-other" />
+                </div>
+              )}
               <div className="grid sm:grid-cols-2 gap-3">
                 <DateTimeField name="departureTime" label="Departure date & time" id="admin-opt-depart" />
                 <TextField name="price" type="number" label="Price (₦)" placeholder="180000" icon={Banknote} inputMode="numeric" id="admin-opt-price" />

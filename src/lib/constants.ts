@@ -74,8 +74,12 @@ export const AIRLINES = [
   'No preference',
 ];
 
-/** Sentinel for the "type your own airline" choice on the request form. */
-export const OTHER_AIRLINE = 'OTHER';
+/**
+ * Sentinel for the "type your own airline" choice on the request form. Kept
+ * as a nicely-cased word (not e.g. "OTHER") because the request form's
+ * ComboboxField displays this value verbatim once selected.
+ */
+export const OTHER_AIRLINE = 'Other';
 
 export interface BoardColumn {
   status: RequestStatus;

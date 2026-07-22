@@ -27,8 +27,9 @@ function timeAgo(iso: string): string {
 
 /**
  * Topbar bell with unread badge and a dropdown notification panel. Shared by
- * every portal (client, agent, admin). Mock-backed until the backend's
- * real-time delivery ships — swap happens in notifications.api.ts only.
+ * every portal (client, agent, admin). Backed by the live `/notifications`
+ * endpoints, polling on an interval — swap to WS/SSE push in
+ * notifications.api.ts + useNotifications only, no UI changes needed.
  */
 export function NotificationsBell() {
   const router = useRouter();
@@ -150,8 +151,8 @@ export function NotificationsBell() {
           {/* Footer */}
           <div className="px-4 py-2.5 border-t border-line bg-surface/60 text-center">
             <span className="text-[11px] text-ink-3">
-              <span aria-hidden="true" className="inline-block w-1.5 h-1.5 rounded-full bg-amber mr-1.5 align-middle" />
-              Live updates are on the way — this preview refreshes on page load.
+              <span aria-hidden="true" className="inline-block w-1.5 h-1.5 rounded-full bg-green mr-1.5 align-middle" />
+              Updates automatically every 30 seconds.
             </span>
           </div>
         </div>
