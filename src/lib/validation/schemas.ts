@@ -138,7 +138,7 @@ export const newRequestSchema = yup.object({
   preferredAirline: yup.string().notRequired(),
   /** Required only when the client picks "Other" for preferred airline. */
   preferredAirlineOther: yup.string().trim().when('preferredAirline', {
-    is: 'OTHER',
+    is: 'Other',
     then: (s) => s.required('Enter the airline name.'),
     otherwise: (s) => s.notRequired(),
   }),
@@ -148,6 +148,12 @@ export const newRequestSchema = yup.object({
 export const quoteOptionSchema = yup.object({
   label: yup.string().trim().required('A label is required.'),
   airline: yup.string().trim().required('Airline is required.'),
+  /** Required only when the agent/admin picks "Other" for the airline. */
+  airlineOther: yup.string().trim().when('airline', {
+    is: 'Other',
+    then: (s) => s.required('Enter the airline name.'),
+    otherwise: (s) => s.notRequired(),
+  }),
   price: yup
     .number()
     .typeError('Enter a price.')

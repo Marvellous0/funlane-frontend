@@ -1,29 +1,36 @@
 import { useCallback, useEffect, useState } from 'react';
 import { walletApi, ApiError } from '@/api';
-import type { WalletView, WalletTransactionView } from '@/interface';
+import type { WalletView, WalletTransactionView, Pagination } from '@/interface';
 import { toast } from 'react-toastify';
 
+interface TxnParams {
+  page: number;
+  limit: number;
+}
+
+const DEFAULT_TXN_PARAMS: TxnParams = { page: 1, limit: 10 };
+
 /**
- * Live client wallet: balance + locked funds and the transaction ledger,
- * fetched from `/wallet/me`. `topUp` kicks off a Paystack checkout; until the
+ * Live client wallet: balance + locked funds (fetched once) and a paginated
+ * transaction ledger from `/wallet/me/transactions`, which can hold far more
+ * rows than fit on one page. `topUp` kicks off a Paystack checkout; until the
  * backend enables it, its API message (a 503) is surfaced verbatim.
  */
 export function useWallet() {
   const [wallet, setWallet] = useState<WalletView | null>(null);
   const [transactions, setTransactions] = useState<WalletTransactionView[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [txnParams, setTxnParams] = useState<TxnParams>(DEFAULT_TXN_PARAMS);
   const [loading, setLoading] = useState(true);
+  const [txnLoading, setTxnLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const loadWallet = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
-      const [w, t] = await Promise.all([
-        walletApi.myWallet(),
-        walletApi.myTransactions({ limit: 50 }),
-      ]);
+      const w = await walletApi.myWallet();
       setWallet(w.wallet);
-      setTransactions(t.transactions);
+      setError(null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not load your wallet. Please try again.');
     } finally {
@@ -31,9 +38,34 @@ export function useWallet() {
     }
   }, []);
 
+  const loadTransactions = useCallback(async (params: TxnParams) => {
+    setTxnLoading(true);
+    try {
+      const t = await walletApi.myTransactions(params);
+      setTransactions(t.transactions);
+      setPagination(t.pagination);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not load your transactions. Please try again.');
+    } finally {
+      setTxnLoading(false);
+    }
+  }, []);
+
+  // Balance loads once (plus on an explicit refresh); the ledger reloads
+  // whenever the page or page size changes.
   useEffect(() => {
-    load();
-  }, [load]);
+    loadWallet();
+  }, [loadWallet]);
+
+  useEffect(() => {
+    loadTransactions(txnParams);
+  }, [loadTransactions, txnParams]);
+
+  const refresh = useCallback(() => {
+    loadWallet();
+    loadTransactions(txnParams);
+  }, [loadWallet, loadTransactions, txnParams]);
 
   const topUp = useCallback(async (amount: number): Promise<boolean> => {
     try {
@@ -43,13 +75,24 @@ export function useWallet() {
         return true;
       }
       toast.success('Top-up initialized.');
-      await load();
+      refresh();
       return true;
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not start the top-up. Please try again.');
       return false;
     }
-  }, [load]);
+  }, [refresh]);
 
-  return { wallet, transactions, loading, error, refresh: load, topUp };
+  return {
+    wallet,
+    transactions,
+    pagination,
+    txnParams,
+    setTxnParams,
+    loading,
+    txnLoading,
+    error,
+    refresh,
+    topUp,
+  };
 }

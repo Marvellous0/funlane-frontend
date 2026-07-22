@@ -4,13 +4,27 @@ import { useEffect, useState } from 'react';
 import { Formik, Form, type FormikHelpers } from 'formik';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useWallet } from '@/hooks/useWallet';
+import { walletApi, ApiError } from '@/api';
 import { fmtNaira, fmtDateTime } from '@/utils/format';
-import { PageHeader, DataTable } from '@/components/ui';
+import { PageHeader, DataTable, Pagination } from '@/components/ui';
 import { TextField } from '@/components/form';
 import { topupSchema } from '@/lib/validation/schemas';
 import { downloadCsv, csvFilename } from '@/utils/csv';
 import type { ApiTransactionType, WalletTransactionView } from '@/interface';
+import { toast } from 'react-toastify';
 import { Plus, ShieldCheck, Receipt, Lock, AlertTriangle, RefreshCw, Wallet as WalletIcon, Banknote, Download } from 'lucide-react';
+
+/** Fetches every page of the signed-in client's transaction ledger, for a full export. */
+async function fetchAllTransactions(): Promise<WalletTransactionView[]> {
+  const all: WalletTransactionView[] = [];
+  const MAX_PAGES = 50; // safety cap (~5000 rows)
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const res = await walletApi.myTransactions({ page, limit: 100 });
+    all.push(...res.transactions);
+    if (!res.pagination || page >= res.pagination.totalPages || res.transactions.length === 0) break;
+  }
+  return all;
+}
 
 const TXN_META: Record<ApiTransactionType, { label: string; credit: boolean }> = {
   TOPUP: { label: 'Top-up', credit: true },
@@ -23,9 +37,37 @@ const TXN_META: Record<ApiTransactionType, { label: string; credit: boolean }> =
 
 export function WalletContainer() {
   const name = useAuthStore((s) => s.user?.name) ?? 'Your account';
-  const { wallet, transactions, loading, error, refresh, topUp } = useWallet();
+  const { wallet, transactions, pagination, txnParams, setTxnParams, loading, txnLoading, error, refresh, topUp } = useWallet();
 
   const [showTopup, setShowTopup] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function exportAllTransactions() {
+    setExporting(true);
+    try {
+      const all = await fetchAllTransactions();
+      if (!all.length) {
+        toast.info('There are no transactions to export.');
+        return;
+      }
+      downloadCsv(
+        csvFilename('wallet-transactions'),
+        ['Date', 'Type', 'Reference', 'Amount', 'Balance after'],
+        all.map((t) => [
+          t.createdAt,
+          TXN_META[t.type]?.label ?? t.type,
+          t.reference ?? (t.requestId ? `Request ${t.requestId.slice(0, 8)}` : ''),
+          t.amount,
+          t.balanceAfter,
+        ]),
+      );
+      toast.success(`Exported ${all.length} transaction${all.length === 1 ? '' : 's'}.`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not export your transactions.');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   // Deep-link from the command palette ("Top up wallet") opens the form directly.
   useEffect(() => {
@@ -128,24 +170,13 @@ export function WalletContainer() {
           <section className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-lg font-semibold text-ink">Transaction history</h2>
-              {transactions.length > 0 && (
+              {(transactions.length > 0 || (pagination?.total ?? 0) > 0) && (
                 <button
-                  onClick={() =>
-                    downloadCsv(
-                      csvFilename('wallet-transactions'),
-                      ['Date', 'Type', 'Reference', 'Amount', 'Balance after'],
-                      transactions.map((t) => [
-                        t.createdAt,
-                        TXN_META[t.type]?.label ?? t.type,
-                        t.reference ?? (t.requestId ? `Request ${t.requestId.slice(0, 8)}` : ''),
-                        t.amount,
-                        t.balanceAfter,
-                      ]),
-                    )
-                  }
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 border border-line rounded-lg px-3.5 py-2 hover:bg-surface hover:text-ink transition-colors"
+                  onClick={exportAllTransactions}
+                  disabled={exporting}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink-2 border border-line rounded-lg px-3.5 py-2 hover:bg-surface hover:text-ink transition-colors disabled:opacity-50"
                 >
-                  <Download aria-hidden="true" className="w-4 h-4" /> Export CSV
+                  <Download aria-hidden="true" className="w-4 h-4" /> {exporting ? 'Exporting…' : 'Export CSV'}
                 </button>
               )}
             </div>
@@ -154,7 +185,7 @@ export function WalletContainer() {
               data={transactions}
               rowKey={(t) => t.id}
               minWidth={560}
-              loading={loading}
+              loading={txnLoading}
               loadingLabel="Loading transactions…"
               emptyIcon={Receipt}
               empty="No transactions yet."
@@ -196,6 +227,18 @@ export function WalletContainer() {
                 },
               ]}
             />
+
+            {pagination && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                total={pagination.total}
+                unit="transaction"
+                limit={txnParams.limit ?? pagination.limit}
+                onLimitChange={(limit) => setTxnParams({ page: 1, limit })}
+                onPageChange={(page) => setTxnParams({ ...txnParams, page })}
+              />
+            )}
           </section>
         </>
       )}

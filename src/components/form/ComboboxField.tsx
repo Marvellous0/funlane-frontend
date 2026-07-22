@@ -55,6 +55,10 @@ export function ComboboxField({
 }: ComboboxFieldProps) {
   const [field, meta, helpers] = useField<string>(name);
   const [query, setQuery] = useState(field.value ?? '');
+  // Drives the filter, decoupled from `query` (the displayed text). Starts
+  // blank on every open so a pre-filled field (e.g. a default like "Economy")
+  // shows the full option list instead of only entries matching that text.
+  const [search, setSearch] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const focusedRef = useRef(false);
@@ -68,7 +72,10 @@ export function ComboboxField({
   // Keep query text in sync when Formik value changes externally.
   const fieldValue = field.value;
   useEffect(() => {
-    if (!focusedRef.current) setQuery(fieldValue ?? '');
+    if (!focusedRef.current) {
+      setQuery(fieldValue ?? '');
+      setSearch('');
+    }
   }, [fieldValue]);
 
   // Recompute portal position whenever the dropdown opens or the window scrolls/resizes.
@@ -90,12 +97,12 @@ export function ComboboxField({
   }, [open, updatePosition]);
 
   const { matches, totalMatches } = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = search.trim().toLowerCase();
     const filtered = !q
       ? options
       : options.filter((o) => { const h = haystack(o); return q.split(/\s+/).every((t) => h.includes(t)); });
     return { matches: filtered.slice(0, MAX_RENDERED), totalMatches: filtered.length };
-  }, [query, options]);
+  }, [search, options]);
 
   useEffect(() => {
     if (!open) return;
@@ -112,11 +119,13 @@ export function ComboboxField({
 
   function selectOption(o: ComboOption) {
     commit(o.value);
+    setSearch('');
     setOpen(false);
     void helpers.setTouched(true, false);
   }
 
   function handleInput(text: string) {
+    setSearch(text);
     if (strict) {
       setQuery(text);
       if (field.value) void helpers.setValue('');
@@ -148,11 +157,11 @@ export function ComboboxField({
   function onKeyDown(e: React.KeyboardEvent) {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      if (!open) { setOpen(true); return; }
+      if (!open) { setOpen(true); setSearch(''); setActive(0); return; }
       setActive((i) => (matches.length ? (i + 1) % matches.length : 0));
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      if (!open) { setOpen(true); return; }
+      if (!open) { setOpen(true); setSearch(''); setActive(0); return; }
       setActive((i) => (matches.length ? (i - 1 + matches.length) % matches.length : 0));
     } else if (e.key === 'Enter') {
       if (open && matches[active]) { e.preventDefault(); selectOption(matches[active]); }
@@ -174,7 +183,7 @@ export function ComboboxField({
             className="z-[9999] max-h-72 overflow-y-auto rounded-xl border border-line bg-card shadow-lg py-1.5 animate-fade-in"
           >
             {matches.length === 0 ? (
-              <li className="px-3.5 py-3 text-sm text-ink-3">No matches for \u201c{query.trim()}\u201d.</li>
+              <li className="px-3.5 py-3 text-sm text-ink-3">No matches for \u201c{search.trim()}\u201d.</li>
             ) : (
               matches.map((o, i) => {
                 const selected = field.value === o.value;
@@ -232,7 +241,7 @@ export function ComboboxField({
             placeholder={placeholder ?? ' '}
             value={query}
             onChange={(e) => { handleInput(e.target.value); setOpen(true); setActive(0); }}
-            onFocus={() => { focusedRef.current = true; setOpen(true); }}
+            onFocus={(e) => { focusedRef.current = true; setOpen(true); setSearch(''); setActive(0); e.target.select(); }}
             onBlur={handleBlur}
             onKeyDown={onKeyDown}
             className={`${controlClass} placeholder:text-transparent focus:placeholder:text-ink-3/50 ${Icon ? 'pl-11' : 'pl-4'} pr-10`}

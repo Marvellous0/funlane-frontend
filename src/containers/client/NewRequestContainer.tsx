@@ -6,14 +6,15 @@ import { Formik, Form, FieldArray } from 'formik';
 import * as yup from 'yup';
 import { requestsApi, usersApi, ApiError } from '@/api';
 import { useAuthStore } from '@/store/useAuthStore';
-import { AIRLINES, OTHER_AIRLINE } from '@/lib/constants';
+import { OTHER_AIRLINE } from '@/lib/constants';
+import { AIRLINE_PREFERENCE_OPTIONS } from '@/lib/airlineOptions';
 import { BUDGET_TIERS } from '@/services/requestView';
 import { newRequestSchema } from '@/lib/validation/schemas';
 import { useCityOptions, useNationalityOptions } from '@/hooks/useCountryData';
 import type { AdminUserView, ApiBudgetTier } from '@/interface';
 import { toast } from 'react-toastify';
 import { PageHeader } from '@/components/ui';
-import { TextField, SelectField, DateField, FileField, SegmentedField, ComboboxField } from '@/components/form';
+import { TextField, SelectField, DateField, FileField, SegmentedField, ComboboxField, type ComboOption } from '@/components/form';
 import {
   Plus,
   X,
@@ -48,9 +49,23 @@ interface RequestFormValues {
   /** Free-text airline, used when preferredAirline is the "Other" sentinel. */
   preferredAirlineOther: string;
   preferredTime: string;
-  budgetTier: ApiBudgetTier;
+  /** Combobox display label (e.g. "Economy") — resolved to the API's cabin-class enum on submit. */
+  budgetTier: string;
   passengers: PassengerValues[];
 }
+
+const TIME_OPTIONS: ComboOption[] = [
+  { value: 'Any time', label: 'Any time', description: 'No preference' },
+  { value: 'Morning', label: 'Morning', description: '6AM – 12PM' },
+  { value: 'Afternoon', label: 'Afternoon', description: '12PM – 6PM' },
+  { value: 'Evening', label: 'Evening', description: 'After 6PM' },
+];
+
+/** Combobox shows the friendly label; handleSubmit resolves it back to the API's cabin-class enum. */
+const BUDGET_OPTIONS: ComboOption[] = BUDGET_TIERS.map((t) => ({ value: t.label, label: t.label }));
+const BUDGET_TIER_BY_LABEL: Record<string, ApiBudgetTier> = Object.fromEntries(
+  BUDGET_TIERS.map((t): [string, ApiBudgetTier] => [t.label, t.value]),
+);
 
 const emptyPassenger = (): PassengerValues => ({
   fullName: '',
@@ -71,7 +86,7 @@ const initialValues: RequestFormValues = {
   preferredAirline: 'No preference',
   preferredAirlineOther: '',
   preferredTime: 'Any time',
-  budgetTier: 'ECONOMY',
+  budgetTier: BUDGET_OPTIONS[0]?.value ?? 'Economy',
   passengers: [emptyPassenger()],
 };
 
@@ -117,6 +132,9 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
           ? undefined
           : values.preferredAirline;
 
+    // The combobox shows the friendly label ("Economy"); resolve back to the API enum.
+    const budgetTier = BUDGET_TIER_BY_LABEL[values.budgetTier] ?? 'ECONOMY';
+
     try {
       const { request } = await requestsApi.createRequest({
         clientId: isAdmin ? values.clientId : undefined,
@@ -124,7 +142,7 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
         destination: values.destination.trim(),
         departureDate: values.departureDate,
         returnDate: values.tripType === 'round' ? values.returnDate : undefined,
-        budgetTier: values.budgetTier,
+        budgetTier,
         preferredAirline: airline,
         preferredTime: values.preferredTime === 'Any time' ? undefined : values.preferredTime,
         passengers: values.passengers.map(({ file, ...p }) => p),
@@ -193,25 +211,30 @@ export function NewRequestContainer({ redirectTo = '/client/requests' }: NewRequ
               </div>
 
               <div className="grid sm:grid-cols-3 gap-4">
-                <SelectField name="preferredAirline" label="Preferred airline" icon={Plane}>
-                  {AIRLINES.map((a) => (
-                    <option key={a}>{a}</option>
-                  ))}
-                  <option value={OTHER_AIRLINE}>Other (type it in)</option>
-                </SelectField>
-                <SelectField name="preferredTime" label="Preferred time" icon={Clock}>
-                  <option value="Any time">No preference</option>
-                  <option value="Morning">Morning (6AM – 12PM)</option>
-                  <option value="Afternoon">Afternoon (12PM – 6PM)</option>
-                  <option value="Evening">Evening (after 6PM)</option>
-                </SelectField>
-                <SelectField name="budgetTier" label="Cabin class" icon={Armchair}>
-                  {BUDGET_TIERS.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </SelectField>
+                <ComboboxField
+                  name="preferredAirline"
+                  label="Preferred airline"
+                  placeholder="Search airline"
+                  icon={Plane}
+                  options={AIRLINE_PREFERENCE_OPTIONS}
+                  strict
+                />
+                <ComboboxField
+                  name="preferredTime"
+                  label="Preferred time"
+                  placeholder="Search time"
+                  icon={Clock}
+                  options={TIME_OPTIONS}
+                  strict
+                />
+                <ComboboxField
+                  name="budgetTier"
+                  label="Cabin class"
+                  placeholder="Search cabin class"
+                  icon={Armchair}
+                  options={BUDGET_OPTIONS}
+                  strict
+                />
               </div>
 
               {values.preferredAirline === OTHER_AIRLINE && (
